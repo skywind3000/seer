@@ -51,3 +51,34 @@
   diff 最小化检查项）、Phase 7 维护策略（定期 merge 上游的流程）
   均按此更新。
 - 依据：主人 2026-10-20 决策。
+
+## D3 — 细化 D1：Windows 下只有终端程序弹终端窗口，GUI 程序不弹
+
+- 日期：2026-10-20
+- 状态：已采纳（主人决策；机制细节留 Phase 2 Q1 PoC 实证）
+- 背景：D1 只说了「弹出被调试程序的控制台窗口」。主人补充：观察
+  Visual Studio 的行为——调试 GUI（非终端）程序时不弹终端窗口；
+  vim 的 termdebug 也是「不捕获程序终端，终端程序自动弹、GUI
+  程序不弹」。
+- 决策：Windows 下**不做任何「被调试程序是不是终端程序」的探测**，
+  也不捕获 inferior 的终端——不给 gdb 发 console 相关设置（不发
+  `-inferior-tty-set`；`new-console` 发不发由 PoC 定，见下），
+  inferior 弹不弹终端窗口完全由 Windows 按可执行文件 PE 头的子系统
+  字段自动决定：终端子系统程序自动获得新控制台（父进程 gdb 无
+  控制台时系统分配），GUI 子系统程序永远没有控制台。
+- 机制依据：CreateProcess 语义——console 子进程在父进程无控制台时
+  由系统自动分配新控制台；GUI 子系统进程不分配控制台；子系统类型
+  记录在 PE 头里，Seer 无需判断。
+- 待 PoC 确认的两点（并入 Phase 2 Q1，构成 2×2 矩阵）：
+  1. gdb 自身无控制台（`CREATE_NO_WINDOW`）且**不发任何命令**时，
+     console 型 inferior 的 stdio 是落在它自己的新控制台里，还是
+     继承了 gdb 的管道——若是后者会污染 Seer 的 MI 流，就必须改发
+     `-gdb-set new-console on`；
+  2. `new-console on`（CREATE_NEW_CONSOLE）对 GUI 型 inferior 是否
+     会误弹控制台（行为不确定）——若误弹，则只能走「不发命令」
+     路线。
+- 影响：Phase 2 Q1 扩为 2×2 矩阵；`docs/plan.md`（Q1、任务 2、
+  Phase 5 任务与验证）与 `docs/porting/audit.md`（A2 候选方案）
+  已同步更新。
+- 依据：主人 2026-10-20 决策；Visual Studio 与 vim termdebug 的
+  行为参照。

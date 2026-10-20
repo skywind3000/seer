@@ -55,8 +55,8 @@
 
 | Phase | 名称 | 状态 | 核心产出 |
 | --- | --- | --- | --- |
-| 0 | 环境与基线 | 未开始 | 双平台工具链就绪，上游 Linux 版构建通过 |
-| 1 | 平台耦合审计 | 未开始 | `docs/porting/audit.md` |
+| 0 | 环境与基线 | 已完成 | 双平台工具链就绪，上游 Linux 版构建通过 |
+| 1 | 平台耦合审计 | 待复核 | `docs/porting/audit.md` |
 | 2 | 关键技术决策与 PoC | 未开始 | `docs/porting/decisions.md` + PoC 佐证 |
 | 3 | 移植 Spec | 未开始 | `docs/porting/specs/` |
 | 4 | 垂直切片：Windows 全量构建 | 未开始 | Windows 上核心调试流程可用（console 暂缺） |
@@ -102,7 +102,17 @@
   `.tmp/`。（GUI 运行需要 X server，本 phase 不作硬性要求。）
 - `docs/porting/environment.md` 里的命令可以被照抄复现。
 
-**执行记录**：（进行中时在此记日期与备注）
+**执行记录**：2026-10-20 开工。实测：MSYS2 侧 cmake / ninja /
+qt6-base / qt6-svg / qt6-charts 已全部装好（版本与 `AGENTS.local.md`
+§3 一致，pacman 安装步骤免做）；WSL2 的 universe 组件已启用，
+Qt6 开发包尚未安装。
+
+2026-10-20 完成。Windows 冒烟（构建 + 运行 exit 0）；WSL2 apt 装
+`qt6-base-dev` / `qt6-charts-dev` / `qt6-svg-dev`（6.4.2，注意
+noble 包名）；`seergdb` 基线构建 `[100%]` 通过，日志存
+`.tmp/wsl-build.log`；issue #94 通读（21 条评论）。产出
+`docs/porting/environment.md`，佐证摘录进 `docs/porting/evidence/`。
+全部出口条件满足，置「已完成」。
 
 ---
 
@@ -143,7 +153,13 @@
 - audit 表每一行的「Windows 候选方案」列非空。
 - 主人 review 通过（状态置「待复核」→「已完成」）。
 
-**执行记录**：
+**执行记录**：2026-10-20 开工（grep 清单与热点文件精读在 Phase 0
+构建等待期并行完成）。
+
+2026-10-20 审计完成。产出 `docs/porting/audit.md`：9 个耦合点
+（A1–A9）全部有候选方案；grep 命中归零核对完毕（含误报标注与
+`/tmp` 假阴性教训）；AGENTS.md 清单外新发现 5 项。出口条件中仅剩
+「主人 review」，置「待复核」。佐证：`evidence/audit-grep*.txt`。
 
 ---
 
@@ -155,11 +171,12 @@
 （原「ConPTY 数据路径」与「`-inferior-tty-set` inferior 接线」
 两问已由决策 D1 化解，不再必答；ConPTY 仅为日后可选增强。）
 
-- **Q1 inferior 控制台（D1 路线确认）**：MI 模式下用
-  `-gdb-set new-console on` 让被调试程序弹出独立控制台窗口，确认
-  弹窗内输入 / 输出 / Ctrl-C / 程序退出全部正常；同时确认
-  QProcess 启动 gdb 时能抑制 gdb 自己的黑窗（如
-  `CREATE_NO_WINDOW`），不出现多余窗口。
+- **Q1 inferior 控制台（D1/D3 路线确认）**：gdb 以无控制台方式
+  启动（`CREATE_NO_WINDOW`）后，按 2×2 矩阵实测——发不发
+  `-gdb-set new-console on` × console / GUI 两种 inferior：console
+  型应自动弹独立控制台且输入 / 输出 / Ctrl-C / 退出正常；GUI 型
+  不弹任何窗口；两种情况下 inferior 输出都不得混入 MI 流。依 D3
+  首选「不发命令」路线，new-console 仅在默认行为不达标时启用。
 - **Q2 gdb MI 兼容性**：QProcess 跑 Windows 原生 gdb（64 位 18.1
   与 32 位 17.1 都要），`-file-exec-and-symbols`、`-break-insert`、
   `-exec-run`、`-exec-next`、栈/变量打印是否与 Linux 行为一致。
@@ -175,9 +192,9 @@ grep 清单先行（不必等审计文档完全定稿）。
 1. 每个问题各写一个独立小 PoC，源码与日志放 `.tmp/poc-*`。
    先写下成功标准，再动手，跑完把实测输出存档。
 2. Q1 的 PoC 必须端到端：QProcess 以无控制台方式启动 gdb（MI
-   模式），实际运行一个 console 测试程序，被调试程序弹出独立
-   控制台窗口；窗口内输入能到达程序、程序输出可见、Ctrl-C 能
-   中断、程序退出后窗口行为符合预期，全程记录 MI 日志。
+   模式），分别运行 console 型与 GUI 型测试程序——console 型弹
+   独立控制台窗口且输入 / 输出 / Ctrl-C / 退出正常，GUI 型不弹
+   任何窗口，inferior 输出不得混入 MI 日志，全程记录。
 3. PoC 得出的决策追加到 `docs/porting/decisions.md`（该文件已含
    先期决策 D1/D2，同样只追加），ADR 风格：背景 / 候选项 / 结论 /
    依据（引用 `.tmp/` 里的 PoC 日志，需长期保留的摘录进
@@ -274,9 +291,9 @@ grep 清单先行（不必等审计文档完全定稿）。
 
 **任务**
 
-1. inferior 控制台接线（依 D1）：Windows 启动调试时改发
-   new-console 设置，被调试程序弹出独立控制台窗口；GUI 内
-   console 页在 Windows 下隐藏；gdb 自身黑窗保持抑制。
+1. inferior 控制台接线（依 D1/D3）：按 Phase 2 Q1 定案的机制，
+   首选「不发任何 console 命令、由 PE 子系统自动决定弹不弹」；
+   GUI 内 console 页在 Windows 下隐藏；gdb 自身黑窗保持抑制。
 2. `QProcessInfo` 的 Windows 实现（Toolhelp32 或定案方案）。
 3. `SeerGdbWidget.cpp` 中 termios / signal 相关逻辑的平台替换。
 4. CMake 收尾：gdb 默认路径、Windows 特有编译选项、资源文件。
@@ -286,8 +303,9 @@ grep 清单先行（不必等审计文档完全定稿）。
 
 - console 专项（Windows，弹窗方案）：载入读 stdin 的程序，在弹
   出的独立控制台里验证输入、输出、ANSI 彩色（conhost 渲染）、
-  Ctrl-C 中断、程序退出后的窗口行为；确认 GUI 内 console 页已
-  隐藏、没有多余的 gdb 黑窗。
+  Ctrl-C 中断、程序退出后的窗口行为；另载入 GUI 型测试程序确认
+  不弹任何多余窗口；确认 GUI 内 console 页已隐藏、没有多余的
+  gdb 黑窗。
 - Linux 侧 console 功能回归：PTY 虚拟终端照常可用（冒烟）。
 - 进程列表对话框在 Windows 下可用且能选中进程 attach。
 - 双 gdb（x64 / x86）回归核心调试流程。
@@ -365,6 +383,7 @@ grep 清单先行（不必等审计文档完全定稿）。
 | 2026-10-20 | 主选工具链 MinGW64（MSVC 备选），待 Phase 2 PoC 定案 | `AGENTS.local.md` §1 | 规划 |
 | 2026-10-20 | D1：Windows 被调试程序控制台走独立终端窗口，不做 GUI 内虚拟终端 | 主人决策，全文见 `docs/porting/decisions.md` | 规划 |
 | 2026-10-20 | D2：跨平台单一代码库，最小化对上游文件的 diff，便于定期 merge 上游 | 主人决策，全文见 `docs/porting/decisions.md` | 规划 |
+| 2026-10-20 | D3：细化 D1——Windows 只有终端程序弹终端窗口，GUI 程序不弹；不探测程序类型，由 PE 子系统自动决定 | 主人决策，全文见 `docs/porting/decisions.md` | 规划 |
 
 ## 风险登记
 
@@ -374,7 +393,7 @@ grep 清单先行（不必等审计文档完全定稿）。
 | R2 | `QSocketNotifier` 在 Windows 只支持 socket，ConPTY 管道需另行接入 Qt 事件循环（overlapped IO / 读线程） | 高 | 已化解（D1，不再做 GUI 内终端） | — |
 | R3 | 双 gdb（x64 18.1 / x86 17.1）的 mi 输出细节、地址宽度、寄存器集合差异 | 中 | open | Phase 2 Q2 |
 | R4 | WSL2 的 Qt（apt 6.4.x）与 Windows 的 Qt（MSYS2 6.11.x）版本差，代码要同时兼容两个版本 | 中 | open | 全程 |
-| R5 | WSL2 apt 源缺 `libqt6charts6-dev` / `libqt6svg6-dev`，Phase 0 被阻 | 中 | open | Phase 0 |
+| R5 | WSL2 apt 源缺 `libqt6charts6-dev` / `libqt6svg6-dev`，Phase 0 被阻 | 中 | 已化解（包名问题：noble 用 `qt6-charts-dev` / `qt6-svg-dev`） | Phase 0 |
 | R6 | `tests/` 相当一部分程序本身不可移植，验证矩阵必须先行筛选 | 低 | open | Phase 6 |
 | R7 | `new-console` 在「MI 模式 + QProcess 无控制台启动 gdb」组合下的实际行为未经证实（弹窗时机、多余窗口、Ctrl-C 传递） | 中 | open | Phase 2 Q1 |
 

@@ -92,16 +92,19 @@ issue #94 是本项目最重要的背景资料，动手移植前请先读完它�
 - `.github/workflows/windows-latest.yml` 名字有误导性：它实际是在
   WSL Ubuntu-22.04 里构建 Linux 版，并不是 Windows 原生构建。
 
-### WSL2 环境现状（2026-10-20 探测）
+### WSL2 环境现状（2026-10-20 实测，Qt6 依赖已解决）
 
-- 已有：`g++`、`cmake`、`make`、`gdb`、`pkg-config`。
-- 缺少：`ninja`。
-- Qt6 开发包一个都没装。`qt6-base-dev` 在 apt 里有候选版本 6.4.2，但
-  `libqt6charts6-dev` 和 `libqt6svg6-dev` 显示 `Candidate: (none)`，
-  说明当前启用的 apt 源里没有这两个包（大概率是 universe 组件没开）。
+- 已有：`g++`（13.3.0）、`cmake`（3.28.3）、`make`、`gdb`、
+  `pkg-config`、Qt6 开发包（`qt6-base-dev` / `qt6-charts-dev` /
+  `qt6-svg-dev`，6.4.2）。
+- 缺少：`ninja`（不阻塞，用默认 Unix Makefiles 即可）。
+- 早前探测记录的「`libqt6charts6-dev` 无候选版本」实际是**包名
+  问题**：noble 里这两个包叫 `qt6-charts-dev` / `qt6-svg-dev`；
+  universe 组件一直是启用的。
+- Linux 基线构建已通过，构建命令与结果见
+  `docs/porting/environment.md`。
 
-也就是说，首次构建前需要先解决 Qt6 依赖。安装系统包属于改动 WSL 环境，
-动手前先跟主人确认。
+安装系统包属于改动 WSL 环境，动手前先跟主人确认。
 
 ## 长期目标：Windows 移植
 

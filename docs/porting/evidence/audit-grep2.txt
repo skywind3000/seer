@@ -1,0 +1,48 @@
+### D-fix. /proc
+src\QProcessInfo.cpp:26:    QDir processDir(QStringLiteral("/proc/") + QString::number(pid));
+### H. std fileno
+src\SeerConsoleWidget.cpp:85:        ssize_t n = ::write (STDOUT_FILENO, buffer, count);
+src\SeerConsoleWidget.cpp:238:    if (fcntl(STDOUT_FILENO, F_GETFD) == -1) {
+### I. raw fd IO
+src\SeerConsoleWidget.cpp:85:        ssize_t n = ::write (STDOUT_FILENO, buffer, count);
+src\SeerConsoleWidget.cpp:326:        ::close(_ttyFD); _ttyFD = -1;
+src\SeerConsoleWidget.cpp:332:        ::close(_ttyFD); _ttyFD = -1;
+src\SeerConsoleWidget.cpp:375:    ::close(_ttyFD); _ttyFD = -1;
+src\SeerEditorWidgetSourceAreas.cpp:611:void SeerEditorWidgetSourceArea::open (const QString& fullname, const QString& file, const QString& alternateDirectory) {
+src\SeerEditorWidgetSourceAreas.cpp:764:void SeerEditorWidgetSourceArea::close () {
+### J. console wiring
+src\SeerGdbWidget.cpp:2053:        handleGdbCommand(QString("-inferior-tty-set ") + commandLogsWidget->console()->terminalDeviceName());
+### K. QProcess usage in GdbWidget
+25:#include <QtCore/QProcess>
+91:    _gdbProcess = new QProcess(this);
+103:    QObject::connect(_gdbProcess,                                               &QProcess::readyReadStandardOutput,                                                         _gdbMonitor,                                                    &GdbMonitor::handleReadyReadStandardOutput);
+104:    QObject::connect(_gdbProcess,                                               &QProcess::readyReadStandardError,                                                          _gdbMonitor,                                                    &GdbMonitor::handleReadyReadStandardError);
+105:    QObject::connect(_gdbProcess,                                               static_cast<void (QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),            this,                                                           &SeerGdbWidget::handleGdbProcessFinished); // ??? Do we care about the gdb process ending? For now, terminate Seer.
+106:    QObject::connect(_gdbProcess,                                               static_cast<void (QProcess::*)(QProcess::ProcessError)>(&QProcess::errorOccurred),          this,                                                           &SeerGdbWidget::handleGdbProcessErrored);
+390:        _gdbProcess->kill();
+391:        _gdbProcess->waitForFinished();
+400:QProcess* SeerGdbWidget::gdbProcess () {
+834:    if (_gdbProcess->state() == QProcess::NotRunning) {
+853:    _gdbProcess->write(bytes);       // Send the data into the stdin stream of the bash child process
+3132:void SeerGdbWidget::handleGdbProcessFinished (int exitCode, QProcess::ExitStatus exitStatus) {
+3142:                QString("'%1 %2'").arg(_gdbProcess->program()).arg(_gdbProcess->arguments().join(' ')) + "\n\n" +
+3148:void SeerGdbWidget::handleGdbProcessErrored (QProcess::ProcessError errorStatus) {
+3152:    if (errorStatus == QProcess::FailedToStart) {
+3155:                                   QString("'%1 %2'").arg(_gdbProcess->program()).arg(_gdbProcess->arguments().join(' ')) + "\n\n" +
+3352:    if (_gdbProcess->state() == QProcess::NotRunning) {
+3369:    // that the QProcess object expects.
+3411:    _gdbProcess->setProgram(program);
+3412:    _gdbProcess->setArguments(args);
+3416:    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+3418:    _gdbProcess->setProcessEnvironment(env);
+3421:    _gdbProcess->start();
+3423:    //qDebug() << _gdbProcess->state();
+3446:    // that the QProcess object expects.
+3483:    _gdbProcess->setProgram(program);
+3484:    _gdbProcess->setArguments(args);
+3488:    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+3490:    _gdbProcess->setProcessEnvironment(env);
+3493:    _gdbProcess->start();
+3495:    //qDebug() << _gdbProcess->state();
+3512:    _gdbProcess->kill();
+3515:    _gdbProcess->waitForFinished();
