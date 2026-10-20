@@ -54,6 +54,21 @@ issue #94 是本项目最重要的背景资料，动手移植前请先读完它�
 两者冲突时以 `AGENTS.local.md` 为准。也不要把 `AGENTS.local.md` 里的
 本机路径、工具位置抄进本文件。
 
+### 5. 移植工作按 `docs/plan.md` 跟踪
+
+- Windows 移植的主计划是 `docs/plan.md`：8 个 phase，每个 phase 有
+  任务清单和「验证（出口条件）」。关键决策全文在
+  `docs/porting/decisions.md`（ADR，只追加不删改）。
+- 做移植相关工作前**必须先读 plan.md**，找到当前进行中的 phase，按
+  该 phase 的任务执行；出口条件不满足，不进入下一 phase。
+- phase 开始时把该 phase 状态改为「进行中」；出口条件全部满足后，
+  **自己动手**把状态改为「已完成」，并在「执行记录」里记一行；
+  需要主人复核的先置「待复核」。
+- 期间做出的关键决策追加到 decisions.md，并在 plan.md 文末的
+  「决策记录」表加一行索引。
+- 其余细则（状态取值、文件去向、Linux 回归要求）见 plan.md 的
+  「使用规则（给 agent）」一节。
+
 ## 构建与验证
 
 具体的构建工具位置与调用方式见根目录的 `AGENTS.local.md`（若存在）。
@@ -93,6 +108,10 @@ issue #94 是本项目最重要的背景资料，动手移植前请先读完它�
 目标是在 Windows 上原生构建并运行 Seer（Qt6 + MinGW 或 MSVC），而不是
 长期依赖 WSL 跑 Linux 版。
 
+总体实施计划（phase 划分、各阶段验证出口条件）见 `docs/plan.md`，
+已定决策见 `docs/porting/decisions.md`；跟踪规则见上面「硬性约束」
+第 5 条。本节其余内容是背景资料，与决策冲突时以 decisions.md 为准。
+
 ### 上游的态度（issue #94）
 
 原作者 epasveer 的立场几经反复，截至 2026-03-02 issue 仍是 open，但带
@@ -131,8 +150,11 @@ Windows 没有这套 API。上游讨论中提出过的替代方案（均未落�
 | libuv 的 tty API | 社区 2025-10-12 提出 | 带 ANSI 转义码控制的 TTY |
 | sff / termqt | 作者 2025-11-02 提出 | 来自 Qt 社区讨论的终端候选 |
 
-移植时应该把 PTY 抽象成一层接口，Linux 走现有实现，Windows 走 ConPTY，
-而不是在 `SeerConsoleWidget` 里到处撒 `#ifdef`。
+（上面表格是上游讨论时的候选，均未落地。实际路线已按决策 D1 定案：
+Windows 不做 GUI 内虚拟终端，被调试程序弹出独立控制台窗口，见
+`docs/porting/decisions.md`。平台特有的代码仍要经接口层或集中、
+最小化的改动来隔离，而不是在 `SeerConsoleWidget` 里到处撒
+`#ifdef`。）
 
 ### 其余平台耦合点
 
