@@ -193,6 +193,7 @@ set(SOURCE_FILES
     QImageViewer.cpp
     QAnsiTextEdit.cpp
     SeerUtl.cpp
+    SeerStackTrace.cpp
     SeerArgumentsDialog.cpp
     SeerBreakpointCreateDialog.cpp
     SeerMessagesBrowserWidget.cpp
@@ -313,6 +314,11 @@ endif()
 # for Linux, BSD, Solaris, Minix
 if((UNIX AND NOT APPLE) OR WIN32)
     add_compile_options(-Wall -Wextra -Wunused-result -pedantic)   # -Werror -Wdeprecated-copy
+endif()
+
+if(WIN32)
+    # Keep frame pointers so SeerStackTrace can walk optimized frames too.
+    add_compile_options(-fno-omit-frame-pointer)
 endif()
 
 add_definitions(-DQT_DISABLE_DEPRECATED_UP_TO=0x060300)

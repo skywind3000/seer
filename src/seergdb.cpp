@@ -4,6 +4,7 @@
 
 #include "SeerMainWindow.h"
 #include "SeerUtl.h"
+#include "SeerStackTrace.h"
 #include "QProcessInfo.h"
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QStyleFactory>
@@ -49,6 +50,10 @@ int main (int argc, char* argv[]) {
                                      "*.critical=true");
 
     qSetMessagePattern("[%{time hh:mm:ss}][%{function}:%{line}][%{category}] %{message}");
+
+    // Fatal messages (qFatal / Q_ASSERT) leave a stack trace in the
+    // temp directory before the abort (R8 investigation aid).
+    SeerStackTrace::installFatalHandler();
 
     //
     // Set the app's names. These are static and are safe to set before the app is created.

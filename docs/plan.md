@@ -398,6 +398,23 @@ Phase 6 矩阵。
   xvfb 后 CLI 冒烟验证 `-inferior-tty-set` 路径，代码层已由
   「#else 原文 + 构建通过」保障）。
 
+2026-10-20 追记（主人提的两项需求）：
+
+- **WinDbg 分析链路打通**（主人已装 WinDbg）：经典
+  `cdb.exe`（Windows Kits）对 fail-fast dump 实测出完整调用栈
+  （系统 DLL 带符号、自家帧给模块+偏移）；自家帧用 MinGW 自带
+  `addr2line` 解析 DWARF。路径与用法记入 `AGENTS.local.md` §7。
+- **fatal 栈日志落地**（依主人要求，未引第三方库——MinGW 的
+  DWARF 符号 dbghelp 系库解析不了，原生采集 + addr2line 离线
+  解析更稳）：新增 `src/SeerStackTrace.{h,cpp}`（R8 调查配套，
+  也是长期可观测性改进）——qFatal/Q_ASSERT/std::terminate 时写
+  `%TEMP%\seer-fatal-<pid>.log`；Windows 用
+  `CaptureStackBackTrace`（链接时基址从 PE 文件头读，规避加载器
+  改写），Linux 用 `backtrace()`；CMake 为 WIN32 加
+  `-fno-omit-frame-pointer`。端到端实测：fatal-test 的日志经
+  addr2line 解析出 `capture`/`writeFatalLog`/`messageHandler`
+  的函数:文件:行号。
+
 ---
 
 ## Phase 6 — 系统性交叉验证
@@ -479,7 +496,7 @@ Phase 6 矩阵。
 | R4 | WSL2 的 Qt（apt 6.4.x）与 Windows 的 Qt（MSYS2 6.11.x）版本差，代码要同时兼容两个版本 | 中 | open | 全程 |
 | R5 | WSL2 apt 源缺 `libqt6charts6-dev` / `libqt6svg6-dev`，Phase 0 被阻 | 中 | 已化解（包名问题：noble 用 `qt6-charts-dev` / `qt6-svg-dev`） | Phase 0 |
 | R6 | `tests/` 相当一部分程序本身不可移植，验证矩阵必须先行筛选 | 低 | open | Phase 6 |
-| R8 | 主人人工点验发现：第二次 File→Debug 会话中设置断点时 seergdb 偶发崩溃（事件日志：Qt6Core.dll +0x8045，异常 0xC0000602 fail-fast = Qt qFatal/Q_ASSERT 路径，非内存踩踏；复现一次后重试不崩） | 高 | open（捕获网已上线：WER LocalDumps 对正常启动 100% 留 dump（含 fail-fast，实测）；bash 会话用外层 gdb 抓栈；深度分析届时装 cdb/WinDbg。配置与坑见 `AGENTS.local.md` §7） | Phase 4/6 |
+| R8 | 主人人工点验发现：第二次 File→Debug 会话中设置断点时 seergdb 偶发崩溃（事件日志：Qt6Core.dll +0x8045，异常 0xC0000602 fail-fast = Qt qFatal/Q_ASSERT 路径，非内存踩踏；复现一次后重试不崩） | 高 | open（三层捕获网已上线并全部实测：①WER LocalDumps 对正常启动 100% 留 dump（含 fail-fast）；②cdb 可从 dump 出完整调用栈（系统 DLL 帧带符号）；③**fatal 栈日志**——新增 `src/SeerStackTrace.cpp`，qFatal/Q_ASSERT/std::terminate 时自动写 `%TEMP%\seer-fatal-<pid>.log`（消息+位置+调用栈+addr2line 地址），addr2line 离线解析已实测精确到函数:文件:行号。配置见 `AGENTS.local.md` §7） | Phase 4/6 |
 | R7 | `new-console` 在「MI 模式 + QProcess 无控制台启动 gdb」组合下的实际行为未经证实（弹窗时机、多余窗口、Ctrl-C 传递） | 中 | 已化解（Q1 实证见 D4；Ctrl-C 人工交互项留 Phase 5） | Phase 2 Q1 |
 
 ## 与最初八步设想的映射
