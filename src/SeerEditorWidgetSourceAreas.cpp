@@ -624,7 +624,7 @@ void SeerEditorWidgetSourceArea::open (const QString& fullname, const QString& f
     // Save the filename.
     _fullname           = Seer::normalizeSourcePath(fullname);
     _file               = file;
-    _alternateDirectory = alternateDirectory;
+    _alternateDirectory = Seer::normalizeSourcePath(alternateDirectory);
 
     setDocumentTitle(QDir::toNativeSeparators(_fullname));
 
@@ -1444,7 +1444,9 @@ void SeerEditorWidgetSourceArea::showContextMenu (const QPoint& pos, const QPoin
         // Mark cursor as busy.
         QApplication::setOverrideCursor(Qt::BusyCursor);
 
-        codeEditorCmd.replace("%{file}", fullname());
+        // Native separators for the OS process; the editor's fullname
+        // is stored in the internal forward-slash form.
+        codeEditorCmd.replace("%{file}", QDir::toNativeSeparators(fullname()));
         codeEditorCmd.replace("%{line}", QString::number(lineno));
 
         QProcess* process = new QProcess(this);

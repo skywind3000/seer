@@ -17,6 +17,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QDebug>
 #include <QtCore/QDirIterator>
+#include <QtCore/QSettings>
 #include <iostream>
 
 static void seerhelp() {
@@ -61,6 +62,15 @@ int main (int argc, char* argv[]) {
     QCoreApplication::setApplicationName("seergdb");
     QCoreApplication::setOrganizationName("seergdb");
     QCoreApplication::setApplicationVersion(Seer::version() + " - Ernie Pasveer (c)2021 - 2026");
+
+#if defined(Q_OS_WIN)
+    // Upstream derives the macros/ and scripts/ directories from
+    // QSettings::fileName(). On Windows the native format is the
+    // registry, whose "file name" is not a usable path — those features
+    // silently break. Force the INI format so settings live in a real
+    // file. Linux already uses INI, so this is a Windows-only change.
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+#endif
 
     //
     // Parse arguments.

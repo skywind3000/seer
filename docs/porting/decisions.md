@@ -212,3 +212,23 @@
   仅限 Windows 分支，rebase 时冲突面为单个函数。
 - 依据：`.tmp/mancheck/mismatch-test.sh` 的符号错配 1:1 复现；
   主人拍板。
+
+## D10 — Windows 下 QSettings 强制 IniFormat
+
+- 日期：2026-10-20
+- 状态：已采纳（路径四维扫描的产出）
+- 背景：上游两处功能从 `QSettings::fileName()` 派生真实目录——宏
+  文件（`SeerMacroToolButton`：`<configdir>/macros/<ctx>/<M?>.macro`）
+  与用户 MI 脚本（`SeerGdbWidget::handleGdbSourceScripts`：
+  `<configdir>/scripts/*.gdb`）。Linux 的 NativeFormat 就是 INI 文
+  件，成立；Windows 的 NativeFormat 是**注册表**，`fileName()` 返
+  回 `\HKEY_CURRENT_USER\...`——两个功能在 Windows 上静默失效
+  （目录不存在 / QFile 无法写注册表路径）。
+- 决策：`main()` 里 `QSettings::setDefaultFormat(QSettings::IniFormat)`
+  （`Q_OS_WIN` 守卫）。实测 settings 落在
+  `%APPDATA%\seergdb\seergdb.ini`（真实文件、可检视、可携带），
+  macros/scripts 目录随之恢复可用。Linux 的 NativeFormat 本就是
+  INI，零变化。
+- 影响：Windows 上此前写入注册表的测试期配置不再被读取（一次
+  性回到默认值）；与 D8/D9 一起构成路径处理决策族。
+- 依据：`--xxx-debug` 无头实测 SETTINGS 路径。

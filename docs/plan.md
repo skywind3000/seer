@@ -595,6 +595,34 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
   printpoint `dprintf-channel`。至此除 `-exec-arguments`（用户
   参数，非 gdb 路径）与 pre/post 原始 gdb 脚本外，所有路径入口
   均归一（细则 specs/gdb-glue.md §6）。双平台构建 0 error。
+- 主人要求**路径四维全量扫描**（传递/保存/显示/拼接），发现并修
+  复五处 Windows 问题：①宏文件与用户 MI 脚本目录派生自
+  `QSettings::fileName()`，Windows 注册表形态使其静默失效——
+  `main()` 强制 IniFormat（D10，实测
+  `%APPDATA%\seergdb\seergdb.ini`）；②源码浏览器列表的去重
+  `QMap<fullname>` 未折叠大小写 + fullname 列被双击回读——改
+  `normalizeFileKey` 键 + UserRole 数据/显示分离；③外部编辑器
+  `%{file}` 替换值改为原生分隔符（OS 进程启动应给原生形态）；
+  ④源码 alternate 目录列表 setter 归一（QFileDialog 反斜杠来
+  源）；⑤"Locate File" 的 `_alternateDirectory` 在 open() 归一。
+  扫描确认无恙的项：temp 路径、MI 脚本拷贝、CLI attach 拼接、
+  项目 .seer 读写（editor fullname 已归一）。遗留 Phase 6 项：
+  `source -v` / `source <脚本>` / `-target-select core` 等未加引
+  号的路径命令在路径含空格时断裂（上游行为，跨平台；`tests/
+  hello spaces` 场景覆盖）。双平台构建 0 error。
+- 补充正式回归测试 `tests/hellopathnorm/`（fork 新增，自检式、
+  exit code 语义）：链接**真实** SeerUtl/GdbMonitor 源码（含
+  moc），覆盖 normalizeSourcePath 4 例、normalizeFileKey 3 例
+  （含「同一文件不同拼写命中同一键」）、GdbMonitor 记录级归一
+  集成 4 例（真实 MI 线格式经假 gdb 进程喂入、按 SeerGdbWidget
+  同款接线收信号断言：17.1 反斜杠转换 / 18.1 原样 / `~` 转义
+  文本不误伤 / 无 fullname 记录不伤）；期望值按平台条件化
+  （Windows 变换、其余恒等）。回归入口 `.tmp/regression/run.sh`
+  （临时脚本：双平台构建+运行+无头冒烟，输出 REGRESSION_PASS/
+  FAIL）。实测：Windows 12/12、Linux 12/12、冒烟无 fatal——
+  首轮全绿。构建注意：测试链接需 Qt6Core/Gui/Widgets/Charts
+  （SeerUtl 的 chartTheme 辅助用了 QChart）+ GdbMonitor 的 moc
+  产物。
 
 ---
 
@@ -668,6 +696,7 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
 | 2026-10-20 | D3：细化 D1——Windows 只有终端程序弹终端窗口，GUI 程序不弹；不探测程序类型，由 PE 子系统自动决定 | 主人决策，全文见 `docs/porting/decisions.md` | 规划 |
 | 2026-10-20 | D8：路径处理三层策略——gdb 命令正斜杠、KEY 折叠大小写、显示按 Windows 习惯；GdbMonitor 记录级 fullname 归一 | 主人拍板，全文见 `docs/porting/decisions.md` | Phase 5 |
 | 2026-10-20 | D9：Windows 下 attach 选进程后无条件回填 Program name（守卫伪路径；Linux 保持上游原文） | 主人拍板，全文见 `docs/porting/decisions.md` | Phase 5 |
+| 2026-10-20 | D10：Windows 下 QSettings 强制 IniFormat（macros/scripts 目录派生自 fileName()，注册表形态失效） | 路径四维扫描产出，全文见 `docs/porting/decisions.md` | Phase 5 |
 
 ## 风险登记
 

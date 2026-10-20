@@ -423,7 +423,16 @@ bool SeerEditorManagerWidget::editorMinimapEnabled () const {
 
 void SeerEditorManagerWidget::setEditorAlternateDirectories (const QStringList alternateDirectories) {
 
-    _editorAlternateDirectories = alternateDirectories;
+    // Normalize to forward slashes so the joins in
+    // SeerEditorWidgetSourceArea::findFile() stay consistent no matter
+    // which form the directory dialog returned.
+    QStringList normalized;
+
+    for (const QString& directory : alternateDirectories) {
+        normalized << Seer::normalizeSourcePath(directory);
+    }
+
+    _editorAlternateDirectories = normalized;
 
     // Update current editors.
     SeerEditorManagerEntries::iterator b = beginEntry();
