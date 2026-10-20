@@ -510,9 +510,25 @@ void SeerDebugDialog::handleProgramPidToolButton () {
     // Execute the dialog and get the result.
     if (dlg.exec()) {
         setAttachPid(dlg.selectedPid());
+#ifdef Q_OS_WIN
+        // Windows: always point the program name at the selected
+        // process' executable — a stale value (e.g. the default-project
+        // prefill) silently mis-matches the symbols and produces a
+        // garbage stack (see docs/porting/decisions.md D9). Skipped for
+        // the bracketed '[name]' pseudo-paths of system processes; the
+        // field stays editable for a deliberate override after
+        // selecting. Linux keeps the upstream 'only if empty' rule.
+        const QString fullname = dlg.selectedFullname();
+        if (fullname != "" && fullname.section('/', -1).startsWith("[") == false) {
+            // Native separators in the field (matches QFileDialog-filled
+            // entries); gdb command sites normalize back to forward.
+            setExecutableName(QDir::toNativeSeparators(fullname));
+        }
+#else
         if (executableName() == "") {
             setExecutableName(dlg.selectedFullname());
         }
+#endif
     }
 }
 

@@ -30,6 +30,7 @@
 #include <QtCore/QTextStream>
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
+#include <QtCore/QDir>
 #include <QtCore/QDebug>
 #include <QtCore/QCoreApplication>
 #include <QtCore/QProcess>
@@ -625,7 +626,7 @@ void SeerEditorWidgetSourceArea::open (const QString& fullname, const QString& f
     _file               = file;
     _alternateDirectory = alternateDirectory;
 
-    setDocumentTitle(_fullname);
+    setDocumentTitle(QDir::toNativeSeparators(_fullname));
 
     // If the filename or file is null, it's a placeholder
     // widget. Show the Seer icon!

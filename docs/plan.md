@@ -560,6 +560,42 @@ name 带扩展名、conhost VT 启用。遗留观察项归档：退出后 Thread
 不匹配无提示（Phase 6 UX 候选）、Seer 程序化启用 VT（Phase 5/6
 候选，现为注册表方案）。置「已完成」。
 
+2026-10-20 追记（关账后加固，依 D8）：主人点验后追加路径处理
+系统性审计与三层归一化实施（决策 D8，细则 specs/gdb-glue.md §6）：
+- **命令层**：`-file-exec-and-symbols` / `-file-exec-file` /
+  `-file-symbol-file` / `-environment-cd` / `source -v`（--bl）/
+  `-target-select core` / `-skip-create-file` 七类命令点全部
+  `normalizeSourcePath` 包裹（此前仅编辑器侧 `--source` 已归一）；
+- **KEY 层**：新增 `Seer::normalizeFileKey()`（正斜杠 + 小写
+  折叠，Windows 文件系统大小写不敏感），编辑器 entries 键控
+  改用之；存储 fullname 保留正斜杠原大小写；
+- **记录级**：`GdbMonitor` stdout 读行后对 `fullname="..."` 值
+  做 `\\`→`/` 归一（单点覆盖全部消费方；单测五项全过：17.1
+  转换 / 18.1 原样 / 多字段 / 无字段不伤 / `~` 转义文本不误伤）；
+- **显示层**：栈帧与断点表格 fullname 列、编辑器 tab tooltip、
+  主窗口标题、进程列表 path 列、编辑器文档标题改为
+  `QDir::toNativeSeparators()`（反斜杠 + 真实大小写，Linux no-op）。
+审计边界（有意不覆盖）：`-exec-arguments` 用户参数、CLI `--bs`
+与断点对话框手工输入路径（Phase 6 矩阵覆盖）。Windows `[60/60]`、
+WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
+- 同批落地 **D9**（主人拍板）：Windows 下 attach 选进程后无条件
+  回填 Program name（空路径/`[name]` 伪路径不覆盖，字段选中后仍
+  可手改；Linux 保持上游「非空不覆盖」原文）——根治默认项目预填
+  与 attach 的符号错配陷阱。Windows `[3/3]`、WSL2 `[100%]` 双
+  构建 0 error。
+- 主人复测发现 attach 回填出现混合分隔符路径（`E:\...\mancheck/
+  helloloop.exe`）——根因是显示层改造把**同时作为数据源**的表格
+  列（进程列表 path 列被 `selectedFullname()` 读回拼接）转成了反
+  斜杠。修复：**数据/显示分离**——既是显示又是数据的列用
+  `Qt::UserRole` 存内部正斜杠形态，列文本仅做显示转换，读取方一
+  律读 UserRole（进程列表 / 栈帧 fullname 列 / 断点 fullname 列
+  三处）；Debug 对话框回填后字段显示全反斜杠原生形态。同时把
+  「进 gdb 路径归一」的剩余入口全部关闭（主人要求无例外）：
+  断点创建对话框 `--source`、CLI `--bs` 的 file:line 规格、
+  printpoint `dprintf-channel`。至此除 `-exec-arguments`（用户
+  参数，非 gdb 路径）与 pre/post 原始 gdb 脚本外，所有路径入口
+  均归一（细则 specs/gdb-glue.md §6）。双平台构建 0 error。
+
 ---
 
 ## Phase 6 — 系统性交叉验证
@@ -630,6 +666,8 @@ name 带扩展名、conhost VT 启用。遗留观察项归档：退出后 Thread
 | 2026-10-20 | D1：Windows 被调试程序控制台走独立终端窗口，不做 GUI 内虚拟终端 | 主人决策，全文见 `docs/porting/decisions.md` | 规划 |
 | 2026-10-20 | D2：跨平台单一代码库，最小化对上游文件的 diff，便于定期 merge 上游 | 主人决策，全文见 `docs/porting/decisions.md` | 规划 |
 | 2026-10-20 | D3：细化 D1——Windows 只有终端程序弹终端窗口，GUI 程序不弹；不探测程序类型，由 PE 子系统自动决定 | 主人决策，全文见 `docs/porting/decisions.md` | 规划 |
+| 2026-10-20 | D8：路径处理三层策略——gdb 命令正斜杠、KEY 折叠大小写、显示按 Windows 习惯；GdbMonitor 记录级 fullname 归一 | 主人拍板，全文见 `docs/porting/decisions.md` | Phase 5 |
+| 2026-10-20 | D9：Windows 下 attach 选进程后无条件回填 Program name（守卫伪路径；Linux 保持上游原文） | 主人拍板，全文见 `docs/porting/decisions.md` | Phase 5 |
 
 ## 风险登记
 

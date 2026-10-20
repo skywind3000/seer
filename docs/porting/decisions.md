@@ -158,3 +158,57 @@
   MSVC 路线需另装 Qt-MSVC（本机没有）且无对应收益——被调试目标
   以 MinGW 构建为主，gdb 与 MSYS2 工具链生态一致，
   `AGENTS.local.md` 的整套环境也按 MinGW64 搭建。
+
+## D8 — 路径处理三层策略：gdb 命令正斜杠、KEY 折叠大小写、显示按 Windows 习惯
+
+- 日期：2026-10-20
+- 状态：已采纳（主人拍板）
+- 背景：gdb 17.1 的 `fullname` 字段用反斜杠、符号表 `file` 字段用
+  正斜杠（18.1 一致为正斜杠）——同一文件多种拼写导致编辑器按键
+  控开双 tab、`--source "E:\..."` 的断点命令又被 gdb 的引号转义
+  吃掉反斜杠而失败；Windows 文件系统大小写不敏感又引入第三种
+  维度（`E:/Github/x` vs `e:/github/X` 同一文件）；而 Windows 用户
+  界面习惯看到反斜杠与真实大小写。三个层面需求互相冲突。
+- 决策（三层各司其职，全部 `Q_OS_WIN` 守卫、Linux 为 no-op）：
+  1. **gdb 命令层**：所有嵌路径的 MI 命令一律正斜杠、保留原大
+     小写（`Seer::normalizeSourcePath()`，应用于 `-file-exec-
+     and-symbols` / `-file-exec-file` / `-file-symbol-file` /
+     `-environment-cd` / `source -v` / `-target-select core` /
+     `-skip-create-file` 及编辑器侧 `--source` 断点命令）。
+  2. **KEY 层**：以文件名做 map 键处用正斜杠 + 小写折叠
+     （`Seer::normalizeFileKey()`，现用于编辑器 entries；存储的
+     fullname 保留正斜杠原大小写）。
+  3. **显示层**：面向用户的路径按 Windows 习惯渲染——
+     `QDir::toNativeSeparators()`（反斜杠、真实大小写；Linux 上
+     天然 no-op），应用于栈帧/断点表格的 fullname 列、编辑器
+     tab tooltip、主窗口标题、进程列表 path 列、编辑器文档标题。
+- 配套机制：`GdbMonitor` 在 stdout 读行后对每条 MI 记录做
+  `fullname="..."` 值内 `\`→`/` 的**记录级归一**（单点覆盖全部
+  消费方：编辑器键控、断点对话框预填、各表格；单测验证 17.1
+  反斜杠转换、18.1 原样、多字段、无字段不伤、`~` 转义文本不
+  误伤五项全过）。
+- 有意不覆盖：`-exec-arguments`（用户参数原样）、CLI `--bs` /
+  断点对话框里用户手工输入的路径（边界场景，Phase 6 矩阵覆盖）。
+- 影响：Phase 5 的 G 双 tab / 断点失败问题的根治方案升级为
+  本决策；specs/gdb-glue.md §6 为实施细则。
+- 依据：裸 MI harness 实测（17.1/18.1 路径形态）、gdb 引号转义
+  吃反斜杠的失败实证、主人对三层职责的拍板。
+
+## D9 — Windows 下 attach 选进程后无条件回填 Program name
+
+- 日期：2026-10-20
+- 状态：已采纳（主人拍板，选「Q_OS_WIN 守卫」方案）
+- 背景：Debug 对话框会以「默认项目」预填 Program name（上游特性：
+  记住上次调试目标），attach 流程选进程后 pid 回填但 exe 名**非空
+  不覆盖**（上游规则）——残留的旧目标与被 attach 进程错配时，gdb
+  以错误符号解栈，产出垃圾帧（Phase 5 F 首测实测；Linux 上同样
+  存在此陷阱）。
+- 决策：仅 Windows（`#ifdef Q_OS_WIN`）下，从进程列表选中并确认
+  后**无条件**把 Program name 回填为选中进程的可执行路径；守卫：
+  空路径与 `[name]` 伪路径（System/不可达进程）不覆盖。字段在选中
+  后仍可手改，刻意错配（如配独立符号文件走 Symbol file 栏）不受
+  影响。Linux 分支保持上游「非空不覆盖」原文。
+- 影响：Windows 侧 attach 流程不再踩预填陷阱；有意偏离上游行为
+  仅限 Windows 分支，rebase 时冲突面为单个函数。
+- 依据：`.tmp/mancheck/mismatch-test.sh` 的符号错配 1:1 复现；
+  主人拍板。

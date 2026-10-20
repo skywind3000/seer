@@ -93,6 +93,36 @@ void GdbMonitor::handleReadyReadStandardOutput () {
         // Convert to a string.
         QString text(buf);
 
+#if defined(Q_OS_WIN)
+        // gdb 17.x reports 'fullname' fields MI-escaped with backslashes
+        // while its symbol table uses forward slashes. Rewrite the value
+        // of every 'fullname="..."' field to forward slashes here, once,
+        // so all consumers (editor keys, breakpoint dialogs, tables)
+        // see a single spelling. Case is preserved. The MI escape pair
+        // '\\' becomes one '/', so the line is rebuilt by segments.
+        {
+            static const QRegularExpression fullnameRe("fullname=\"[^\"]*\"");
+            QRegularExpressionMatchIterator it = fullnameRe.globalMatch(text);
+
+            QString newText;
+            int     last = 0;
+
+            while (it.hasNext()) {
+                QRegularExpressionMatch m = it.next();
+                newText += text.mid(last, m.capturedStart() - last);
+
+                QString value = m.captured(0);
+                value.replace("\\\\", "/");
+                newText += value;
+
+                last = m.capturedStart() + m.capturedLength();
+            }
+
+            newText += text.mid(last);
+            text = newText;
+        }
+#endif
+
         //qDebug() << "Read buffer" << buf.size() << (int)buf[buf.size()-1] << text;
         qCDebug(LC) << text;
 

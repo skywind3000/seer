@@ -147,6 +147,19 @@ namespace Seer {
 #endif
     }
 
+    QString normalizeFileKey (const QString& path) {
+
+        // Canonical key for filename-based maps on Windows: forward
+        // slashes (see normalizeSourcePath) plus case folding, since
+        // Windows filesystems are case-insensitive. A no-op on other
+        // platforms.
+#if defined(Q_OS_WIN)
+        return normalizeSourcePath(path).toLower();
+#else
+        return path;
+#endif
+    }
+
     QString expandTabs (const QString& str, int tabsize, bool morph) {
 
         QString work = str;

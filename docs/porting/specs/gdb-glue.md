@@ -101,32 +101,74 @@ MinGW CRT 没有 `SIGKILL` / `SIGUSR1` / `SIGUSR2` 宏（A4 实编译
 
 SIGINT / SIGKILL 在 Windows 有 §1 的映射，菜单保留。
 
-## §6 源文件路径分隔符归一化（2026-10-20 实施补记）
+## §6 路径处理三层策略（依 D8，2026-10-20 实施补记）
 
-实测（裸 MI harness，hellofibonacci 双位宽）：gdb 17.1 的
-`fullname` 字段用反斜杠（`E:\Github\...`）而符号表 `file` 字段用
-正斜杠（`E:/Github/...`）；gdb 18.1 两者一致用正斜杠。Seer 以
-fullname 字符串做编辑器 tab 键控与断点命令拼接，17.1 下同一文件
-出现两种拼写——双 tab + `-break-insert -f --source "E:\..."` 的
-引号转义又被 gdb 吃掉反斜杠导致断点失败。
+实测（裸 MI harness，双位宽 gdb）：gdb 17.1 的 `fullname` 字段用
+反斜杠（MI 转义 `\\`）而符号表 `file` 字段用正斜杠；18.1 一致为
+正斜杠。Seer 以字符串做编辑器键控与断点命令拼接，双拼写造成双
+tab + `-break-insert -f --source "E:\..."` 的引号转义被 gdb 吃掉
+反斜杠而失败。Windows 文件系统又大小写不敏感，引入第三维度。
+决策 D8 定为三层（全部 `Q_OS_WIN` 守卫，Linux no-op）：
 
-方案：`Seer::normalizeSourcePath()`（`SeerUtl`，`Q_OS_WIN` 守卫，
-反斜杠→正斜杠），应用点：
+**1. gdb 命令层——正斜杠、原大小写**（`Seer::normalizeSourcePath`）：
 
-- `SeerEditorManagerWidget`：`hasEntry` / `addEntry` /
-  `findEntry`（键与 `entry.fullname` 均归一）；
-- `SeerEditorWidgetSourceArea`：`open()` 的 `_fullname` 与
-  `handleText()` 解析出的 `fullname_text`（两处拼写归一后，
-  `fullname_text != fullname()` 的重开判断保持稳定）。
+| 命令点（SeerGdbWidget.cpp） | 变量 |
+| --- | --- |
+| `-file-exec-and-symbols "<p>"` / `-file-exec-file` | executableName |
+| `-file-symbol-file "<p>"` | executableSymbolName |
+| `-environment-cd "<p>"` | executableWorkingDirectory |
+| `source -v <p>`（--bl 断点文件） | executableBreakpointsFilename |
+| `-target-select core <p>` | executableCoreFilename |
+| `-skip-create-file <p>` | skip 对话框 |
 
-归一后断点命令用正斜杠，与符号表一致，17.1/18.1 均接受；Linux
-为 no-op。
+编辑器侧断点命令（`--source`）与 `runToLine` 用的 fullname 经
+第 3 条记录级归一后天然为正斜杠。`-exec-arguments` 为用户传给被
+调试程序的参数，非 gdb 路径，有意不归一。
+
+**2. KEY 层——正斜杠 + 小写折叠**（`Seer::normalizeFileKey()`）：
+编辑器 entries（`hasEntry` / `addEntry` / `findEntry`）用折叠键；
+`entry.fullname` 存 `normalizeSourcePath` 形态（正斜杠、原大小写），
+供显示转换与命令构造复用。
+
+**3. 记录级——GdbMonitor 单点归一**：stdout 读行后对每条 MI 记录
+的 `fullname="..."` 值做 `\\`→`/`（按段重建整行；转义对与 `/` 等
+长不等，勿原地替换）。覆盖全部消费方：编辑器键控、断点创建对话
+框预填、栈帧/断点表格。`~` 记录里的 `fullname=\"...\"` 转义形态
+不匹配模式、天然不受伤（单测验证）。
+
+**4. 显示层——Windows 习惯**（`QDir::toNativeSeparators()`，反斜
+杠 + 真实大小写，Linux no-op）：栈帧 fullname 列
+（SeerStackFramesBrowserWidget）、断点 fullname 列
+（SeerBreakpointsBrowserWidget）、编辑器 tab tooltip 与文档标题、
+主窗口标题（SeerMainWindow）、进程列表 path 列
+（QProcessInfoWidget）、Debug 对话框 attach 回填后的 Program name
+栏（SeerDebugDialog，与 QFileDialog 填充的原生形态一致）。
+
+**数据/显示分离（重要教训）**：上述表格列会被代码**读回当数据**
+（`selectedFullname()` 拼 `text(2)+"/"+text(3)`；栈帧/断点行双击
+回读 fullname 列）——直接把列文本转反斜杠会把数据弄脏（混合
+分隔符路径）。规则：**既是显示又是数据的列，用 `Qt::UserRole`
+存内部形态（正斜杠原大小写），列文本只做显示转换，读取方一律
+读 UserRole**（QProcessInfoWidget / SeerStackFramesBrowserWidget /
+SeerBreakpointsBrowserWidget 三处已按此实施）。
+
+**断点/打印点规格的路径入口（补齐后无例外）**：断点创建对话框
+的 `--source`（`SeerBreakpointCreateDialog::breakpointText()`）、
+CLI `--bs` 的 file:line 规格（`setExecutableBreakpointSourceName`
+setter）、printpoint 的 `dprintf-channel` 输出文件
+（`handleGdbPrintpointInsert`）均已 `normalizeSourcePath` 包裹。
+断点/条件字符串本体不做整体归一——条件里合法出现反斜杠。
+
+**有意不覆盖**（唯一剩余）：`-exec-arguments`（用户传给被调试
+程序的参数，非 gdb 路径）与 pre/post gdb 命令（用户原始 gdb 脚
+本，按原样执行）。
 
 ## 验证
 
 - Linux 无回归：§1 `#else` 原文、§2 纯删除、§3 默认路径不变——
   WSL2 重构 + 冒烟（中断菜单的 kill 路径、断点保存/恢复走
-  /tmp 的行为）；§6 为 no-op，双平台重构通过。
+  /tmp 的行为）；§6 全部为 no-op，双平台重构通过。
 - Windows：§1 用 t-flow 场景复测（`-exec-interrupt` 打断忙循环、
   gdb `kill` 终止）；§4 调试全程无 gdb 黑窗；§5 菜单目视确认
-  （Phase 5）；§6 用 17.1 会话复测单 tab + 按源码行建断点。
+  （Phase 5）；§6 用 17.1 会话复测单 tab + 按源码行建断点
+  （已过），Phase 6 矩阵覆盖 `--bs` / 手工输入路径边界。

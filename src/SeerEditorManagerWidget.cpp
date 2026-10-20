@@ -20,6 +20,7 @@
 #include <QtCore/QTextStream>
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
+#include <QtCore/QDir>
 #include <QtCore/QDebug>
 #include <QScrollBar>
 #include <QPlainTextEdit>
@@ -140,7 +141,7 @@ void SeerEditorManagerWidget::dumpEntries () const {
 
 bool SeerEditorManagerWidget::hasEntry (const QString& fullname) const {
 
-    if (_entries.find(Seer::normalizeSourcePath(fullname)) != _entries.end()) {
+    if (_entries.find(Seer::normalizeFileKey(fullname)) != _entries.end()) {
         return true;
     }
 
@@ -151,6 +152,9 @@ SeerEditorManagerEntries::iterator SeerEditorManagerWidget::addEntry (const QStr
 
     //qDebug() << "Add entry:" << fullname << file;
 
+    // The key folds separators and case (Windows filesystems are
+    // case-insensitive); the stored fullname keeps the forward-slash
+    // spelling with its original case.
     const QString normalized = Seer::normalizeSourcePath(fullname);
 
     SeerEditorManagerEntry entry;
@@ -159,15 +163,15 @@ SeerEditorManagerEntries::iterator SeerEditorManagerWidget::addEntry (const QStr
     entry.file     = file;
     entry.widget   = 0;
 
-    return _entries.insert(normalized, entry);
+    return _entries.insert(Seer::normalizeFileKey(fullname), entry);
 }
 
 SeerEditorManagerEntries::iterator SeerEditorManagerWidget::findEntry (const QString& fullname) {
-    return _entries.find(Seer::normalizeSourcePath(fullname));
+    return _entries.find(Seer::normalizeFileKey(fullname));
 }
 
 SeerEditorManagerEntries::const_iterator SeerEditorManagerWidget::findEntry (const QString& fullname) const {
-    return _entries.find(Seer::normalizeSourcePath(fullname));
+    return _entries.find(Seer::normalizeFileKey(fullname));
 }
 
 SeerEditorManagerEntries::iterator SeerEditorManagerWidget::beginEntry () {
@@ -1112,7 +1116,7 @@ SeerEditorWidgetSource* SeerEditorManagerWidget::createEditorWidgetTab (const QS
     // Set the tooltip for the tab.
     int tabno = tabWidget->addTab(editorWidget, QFileInfo(file).fileName());
 
-    tabWidget->setTabToolTip(tabno, QFileInfo(file).fileName() + " : " + fullname);
+    tabWidget->setTabToolTip(tabno, QFileInfo(file).fileName() + " : " + QDir::toNativeSeparators(fullname));
 
     // Connect signals.
     QObject::connect(editorWidget->sourceArea(), &SeerEditorWidgetSourceArea::insertBreakpoint,              this, &SeerEditorManagerWidget::handleInsertBreakpoint);
@@ -1178,7 +1182,7 @@ SeerEditorWidgetSource* SeerEditorManagerWidget::createEditorWidgetTab (const QS
     // Set the tooltip for the tab.
     int tabno = tabWidget->addTab(editorWidget, QFileInfo(file).fileName());
 
-    tabWidget->setTabToolTip(tabno, QFileInfo(file).fileName() + " : " + fullname);
+    tabWidget->setTabToolTip(tabno, QFileInfo(file).fileName() + " : " + QDir::toNativeSeparators(fullname));
 
     // Connect signals.
     QObject::connect(editorWidget->sourceArea(), &SeerEditorWidgetSourceArea::insertBreakpoint,              this, &SeerEditorManagerWidget::handleInsertBreakpoint);

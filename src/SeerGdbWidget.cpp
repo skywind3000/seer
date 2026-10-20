@@ -481,7 +481,9 @@ const QString& SeerGdbWidget::executableBreakpointFunctionName () const {
 }
 
 void SeerGdbWidget::setExecutableBreakpointSourceName (const QString& sourceFilenameAndLineno) {
-    _executableBreakpointSourceName = sourceFilenameAndLineno;
+    // 'file:line' source spec (CLI --bs). Normalize separators for gdb;
+    // conditions are never part of this value, so the whole string is safe.
+    _executableBreakpointSourceName = Seer::normalizeSourcePath(sourceFilenameAndLineno);
 }
 
 const QString& SeerGdbWidget::executableBreakpointSourceName () const {
@@ -1459,7 +1461,7 @@ void SeerGdbWidget::handleGdbCoreFileExecutable () {
         setNewExecutableFlag(false);
 
         // Load the executable's core file.
-        handleGdbCommand(QString("-target-select core %1").arg(executableCoreFilename()));
+        handleGdbCommand(QString("-target-select core %1").arg(Seer::normalizeSourcePath(executableCoreFilename())));
 
         // Elaborate gdb variable output
         handleGdbCommand("set print repeats unlimited");
@@ -1984,18 +1986,18 @@ void SeerGdbWidget::handleGdbExecutableName () {
     // An executable and no symbol file? Symbols are expected in the executable.
     if (executableName() != "" && executableSymbolName() == "") {
 
-        handleGdbCommand(QString("-file-exec-and-symbols \"") + executableName() + "\"");
+        handleGdbCommand(QString("-file-exec-and-symbols \"") + Seer::normalizeSourcePath(executableName()) + "\"");
 
     // An executable and a symbol file?  Open the executable and symbol files separately.
     }else if (executableName() != "" && executableSymbolName() != "") {
 
-        handleGdbCommand(QString("-file-exec-file \"")   + executableName() + "\"");
-        handleGdbCommand(QString("-file-symbol-file \"") + executableSymbolName() + "\"");
+        handleGdbCommand(QString("-file-exec-file \"")   + Seer::normalizeSourcePath(executableName()) + "\"");
+        handleGdbCommand(QString("-file-symbol-file \"") + Seer::normalizeSourcePath(executableSymbolName()) + "\"");
 
     // No executable and a symbol file?  Open the symbol files only.
     }else if (executableName() == "" && executableSymbolName() != "") {
 
-        handleGdbCommand(QString("-file-symbol-file \"") + executableSymbolName() + "\"");
+        handleGdbCommand(QString("-file-symbol-file \"") + Seer::normalizeSourcePath(executableSymbolName()) + "\"");
     }
 }
 
@@ -2015,7 +2017,7 @@ void SeerGdbWidget::handleGdbExecutableWorkingDirectory () {
     }
 
     if (executableWorkingDirectory() != "") {
-        handleGdbCommand(QString("-environment-cd \"") + executableWorkingDirectory() + "\"");
+        handleGdbCommand(QString("-environment-cd \"") + Seer::normalizeSourcePath(executableWorkingDirectory()) + "\"");
     }
 }
 
@@ -2025,7 +2027,7 @@ void SeerGdbWidget::handleGdbExecutableLoadBreakpoints () {
         return;
     }
 
-    handleGdbCommand("source -v " + executableBreakpointsFilename());
+    handleGdbCommand("source -v " + Seer::normalizeSourcePath(executableBreakpointsFilename()));
     handleGdbGenericpointList();
 }
 
@@ -2387,7 +2389,7 @@ void SeerGdbWidget::handleGdbPrintpointInsert (QString type, QString function, Q
 
     handleGdbCommand("-gdb-set dprintf-style "    + type);
     handleGdbCommand("-gdb-set dprintf-function " + function);
-    handleGdbCommand("-gdb-set dprintf-channel "  + channel);
+    handleGdbCommand("-gdb-set dprintf-channel "  + Seer::normalizeSourcePath(channel));
 
     handleGdbCommand("-dprintf-insert " + parameters);
     handleGdbGenericpointList();
@@ -2462,7 +2464,7 @@ void SeerGdbWidget::handleGdbSkipAdd (QString skipmode, QString skipparameters) 
     // This option can work when GDB is running.
 
     if (skipmode == "file") {
-        handleGdbCommand("-skip-create-file " + skipparameters);
+        handleGdbCommand("-skip-create-file " + Seer::normalizeSourcePath(skipparameters));
     }else if (skipmode == "gfile") {
         handleGdbCommand("-skip-create-gfile " + skipparameters);
     }else if (skipmode == "function") {
