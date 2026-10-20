@@ -91,7 +91,12 @@ static void windowsPopulateEntry (const PROCESSENTRY32W& entry, QProcessInfo& in
     QString path = windowsProcessImagePath(entry.th32ProcessID);
 
     if (path.isEmpty() == false) {
-        info.setName(QFileInfo(path).completeBaseName());
+        // Keep the '.exe' extension: the name is used to rebuild the
+        // executable path ('path + "/" + name'), and a stripped name
+        // reconstructs a file gdb only finds via its auto-'exe' retry.
+        // Linux names have no extension by nature, so both platforms
+        // end up with the executable's real basename.
+        info.setName(QFileInfo(path).fileName());
         info.setPath(QFileInfo(path).absolutePath());
     }else{
         // Bracket the snapshot name to indicate it is not a file path,

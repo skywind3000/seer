@@ -60,7 +60,7 @@
 | 2 | 关键技术决策与 PoC | 已完成 | `docs/porting/decisions.md`（D4–D7）+ PoC 佐证 |
 | 3 | 移植 Spec | 已完成 | `docs/porting/specs/` |
 | 4 | 垂直切片：Windows 全量构建 | 已完成 | Windows 上核心调试流程可用（console 走弹窗方案） |
-| 5 | 平台后端补齐 | 进行中 | inferior 控制台（弹窗）/ 进程信息 / 平台杂项可用 |
+| 5 | 平台后端补齐 | 已完成 | inferior 控制台（弹窗）/ 进程信息 / 平台杂项可用 |
 | 6 | 系统性交叉验证 | 未开始 | `docs/porting/verification.md` 验证矩阵 |
 | 7 | 交付 | 未开始 | `docs/build-windows.md` + 打包 + 维护策略 |
 
@@ -495,6 +495,70 @@ Phase 4 记录的「17.1 fullname 反斜杠差异实证」正是未拆的地雷�
   （Messages 正确记录 "Program exited normally" / "Program
   terminated"）——纯显示残留，上游代码路径，列入 Phase 6 已知
   差异清单，不阻塞。
+
+2026-10-20 追记（F 首测失败的查证）：主人首测 F（attach 后栈只有
+一条垃圾帧 `level 0 / addr 0x1 / arch i386`、无 helloloop 源码）。
+系统性排除后定位：**Debug 对话框会用当前会话的可执行名预填
+Program name（SeerMainWindow.cpp:648），attach 选进程后 pid 回填
+但非空的 exe 名不会被覆盖**——主人在 G 测试（hellofib32，32 位）
+之后的同一窗口里做 F，实际加载的是 32 位 hellofib32 的符号去
+attach 64 位 helloloop，gdb 以 i386 架构状态解 64 位栈即产出垃圾
+帧（harness 1:1 复现：`*stopped,frame={addr="0x0",func="??",
+arch="i386"}`）。**定性为 gdb 语义下的用法陷阱，非移植缺陷**（
+Linux 上符号错配 attach 同样垃圾栈）；「exe 与 pid 不匹配无提示」
+列为 Phase 6 UX 候选。排除过程中实测干净的项（attach 相关）：
+反斜杠引号路径、`selectedFullname` 的无扩展名混合分隔符形态
+（`path/name`，gdb 自动补 .exe）、`-gdb-set new-console on`、
+无头全流程复刻（MI 流里 `^done,stack` 三帧完整含
+`main at helloloop.c:8`）。另证：32 位 gdb attach 64 位进程直接
+失败（exec 格式不识别 + error 50），不会出现「猎物被挂起」——
+与主人观察到的挂起行为互斥，反证 F 用的是 64 位 gdb。
+佐证：`.tmp/mancheck/{attach-harness*.sh,mismatch-test.sh,
+noext-test.sh,repro-f2.sh,mi.log}`。
+
+2026-10-20 追记（F 复测中的两处观察定性 + 一处修正）：主人复测
+发现新窗口 Program name 仍预填 hellofib32——确认为上游「默认项目」
+特性（`loadDefaultProjectSettings`，新窗口恢复上次调试目标，Linux
+同样行为），非缺陷；主人清空后再选进程的做法即正确姿势。「attach
+时 exe 与 pid 不匹配无提示」维持 Phase 6 UX 候选。另一处
+`selectedFullname` 回填 `E:/.../mancheck/helloloop`（无 .exe）是
+移植粗糙点：`QProcessInfo_win` 的 name 用了 `completeBaseName()`
+（过度模仿 Linux 无扩展名语义）——功能上 gdb 会自动补 .exe（实测），
+但显示形态不对。已修正为 `fileName()`（Windows 进程名天然带 .exe，
+与 Linux「/proc 名即 basename」语义对齐，回填
+`E:/.../mancheck/helloloop.exe`）。双平台重建 0 error（Windows
+重编 QProcessInfo_win.cpp；WSL 回归通过）。
+
+2026-10-20 关账：主人完成全部人工点验（A–G）。F 修正版通过——
+清空预填的 Program name 后选中 helloloop（回填完整
+`.../helloloop.exe`），attach 后 Frames 三帧干净
+（ZwDelayExecution / SleepEx / main@helloloop.c:8）、Source 面板
+有 helloloop.c、Continue / Interrupt / 断点全部正常。收尾项在
+attach 模式下显示为 **"Detach"**（`SeerMainWindow.cpp:1148`——
+同一动作按模式改名，上游设计），点击后会话结束、helloloop 进程
+随之结束（上游 `-exec-kill` 路径对 attach 场景即此行为，Linux
+一致）。
+
+Phase 5 出口条件逐项达成：
+
+- console 专项（弹窗方案）：stdin / 输出 / ANSI 彩色（conhost VT
+  注册表启用后渲染正常）/ Ctrl-C 中断 / 退出关窗 / GUI 型不弹窗 /
+  GUI 内 console 页隐藏 / 无 gdb 黑窗 ✓
+- Linux 侧 console 回归：PTY 双向 + ANSI 16 色（Xvfb 冒烟三重取
+  证）✓
+- 进程列表对话框 + attach ✓（QProcessInfo Windows 后端，含 name
+  带 .exe 修正）
+- 双 gdb（x64 18.1 / x86 17.1）核心调试流程 ✓（含 §6 路径归一
+  化修复后的断点交互）
+- WSL2 Linux 回归构建 ✓（每次编码改动后均复跑）
+- audit.md A1–A9 全部「已关闭」✓
+
+本 phase 累计修复：路径分隔符归一化（`Seer::normalizeSourcePath`
++ 编辑器键控/open 接入，specs/gdb-glue.md §6）、QProcessInfo 的
+name 带扩展名、conhost VT 启用。遗留观察项归档：退出后 Thread
+视图 "Stopped" 残留（Phase 6 已知差异清单）、attach 时 exe/pid
+不匹配无提示（Phase 6 UX 候选）、Seer 程序化启用 VT（Phase 5/6
+候选，现为注册表方案）。置「已完成」。
 
 ---
 
