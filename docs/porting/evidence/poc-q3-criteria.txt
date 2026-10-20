@@ -1,0 +1,13 @@
+# PoC Q3 成功标准（先于运行写定，2026-10-20）
+
+问题：Toolhelp32 快照 + QueryFullProcessImageName + 进程 token/SID
+能否满足 QProcessInfo 需要的字段（pid / 名字 / 路径 / 用户名）。
+
+## 成功标准
+
+1. 枚举进程总数 ≥ 50，与 `tasklist` 计数相差 < 20%；
+2. withPath 占比 ≥ 60%（系统受保护进程会被拒，留余量）；
+3. 自身进程四项全对：pid 正确、名字 = procinfo.exe、路径为完整绝对
+   路径且正确、用户名非空；
+4. cmdline 不在本 PoC 范围（结论应是：留空或后续走 PEB/WMI，
+   对应 audit A3 的候选）。

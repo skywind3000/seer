@@ -1,0 +1,74 @@
+### A. PTY/termios/ioctl/fcntl
+src/SeerConsoleWidget.cpp:21:#include <fcntl.h>
+src/SeerConsoleWidget.cpp:22:#include <termios.h>
+src/SeerConsoleWidget.cpp:238:    if (fcntl(STDOUT_FILENO, F_GETFD) == -1) {
+src/SeerConsoleWidget.cpp:317:    _ttyFD = posix_openpt(O_RDWR | O_NOCTTY);
+src/SeerConsoleWidget.cpp:324:    if (grantpt(_ttyFD)) {
+src/SeerConsoleWidget.cpp:330:    if  (unlockpt(_ttyFD)) {
+src/SeerConsoleWidget.cpp:337:    fcntl(_ttyFD, F_SETFL, O_NDELAY);
+src/SeerConsoleWidget.cpp:347:    if (ioctl(_ttyFD, TIOCSWINSZ, &term_winsize) < 0) {
+src/SeerConsoleWidget.cpp:348:        qDebug() << "ioctl TIOCSWINSZ failed" << strerror(errno);
+src/SeerConsoleWidget.cpp:352:    if (ioctl(_ttyFD, TIOCSCTTY, (char *)0) < 0) {
+src/SeerConsoleWidget.cpp:354:        // qDebug() << "ioctl TIOCSCTTY failed" << strerror(errno);
+src/SeerConsoleWidget.cpp:358:    _terminalDeviceName = ptsname(_ttyFD);
+src/SeerGdbWidget.cpp:36:#include <fcntl.h>
+src/SeerGdbWidget.cpp:37:#include <termios.h>
+### B. POSIX headers
+src/QProcessInfo.cpp:14:#include <pwd.h>
+src/QProcessInfo.cpp:16:#include <unistd.h>
+src/QProcessInfo.cpp:17:#include <sys/types.h>
+src/SeerConsoleWidget.cpp:19:#include <unistd.h>
+src/SeerConsoleWidget.cpp:23:#include <sys/ioctl.h>
+src/SeerConsoleWidget.cpp:24:#include <unistd.h>
+src/SeerGdbWidget.cpp:34:#include <unistd.h>
+src/SeerGdbWidget.cpp:38:#include <sys/ioctl.h>
+src/SeerGdbWidget.cpp:39:#include <signal.h>
+### C. process/IO calls
+src/QProcessInfo.cpp:77:        struct passwd* pw = getpwuid(info.username().toULong());
+src/SeerConsoleWidget.cpp:272:    fsync(_ttyFD);
+src/SeerGdbWidget.cpp:390:        _gdbProcess->kill();
+src/SeerGdbWidget.cpp:3512:    _gdbProcess->kill();
+src/SeerGdbWidget.cpp:3914:    // Use kill() to send the signal to the inferior.
+src/SeerGdbWidget.cpp:3924:        int stat = kill(executablePid(), signal);
+### D. /proc 与路径硬编码
+src/QProcessInfo.cpp:26:    QDir processDir(QStringLiteral("/proc/") + QString::number(pid));
+src/SeerGdbWidget.cpp:1490:            handleGdbCommand(QString("save breakpoints /tmp/breakpoints.seer.%1").arg(QCoreApplication::applicationPid()), true);
+src/SeerGdbWidget.cpp:1517:    QFile::remove(QString("/tmp/breakpoints.seer.%1").arg(QCoreApplication::applicationPid()));
+src/SeerGdbWidget.cpp:2034:    QString filename = QString("/tmp/breakpoints.seer.%1").arg(QCoreApplication::applicationPid());
+src/SeerGdbWidget.cpp:2046:    handleGdbCommand(QString("source -v /tmp/breakpoints.seer.%1").arg(QCoreApplication::applicationPid()));
+src/SeerGdbWidget.cpp:3732:        // Destination file path in /tmp.
+src/SeerGdbWidget.cpp:3733:        QString destinationPath = "/tmp/" + miInfo.fileName();
+### E. QSocketNotifier
+src/SeerConsoleWidget.cpp:390:    _ttyListener = new QSocketNotifier(_ttyFD, QSocketNotifier::Read);
+src/SeerConsoleWidget.cpp:392:    QObject::connect(_ttyListener, &QSocketNotifier::activated, this, &SeerConsoleWidget::handleTerminalOutput);
+src/SeerConsoleWidget.cpp:402:    QObject::disconnect(_ttyListener, &QSocketNotifier::activated, this, &SeerConsoleWidget::handleTerminalOutput);
+src/SeerConsoleWidget.h:12:#include <QtCore/QSocketNotifier>
+src/SeerConsoleWidget.h:76:        QSocketNotifier*    _ttyListener;
+### F. signals
+src/SeerGdbWidget.cpp:1751:    sendGdbInterrupt(SIGINT);
+src/SeerGdbWidget.cpp:1756:    sendGdbInterrupt(SIGKILL);
+src/SeerGdbWidget.cpp:1761:    sendGdbInterrupt(SIGFPE);
+src/SeerGdbWidget.cpp:1766:    sendGdbInterrupt(SIGSEGV);
+src/SeerMainWindow.cpp:118:    QAction* interruptActionSIGINT  = menuInterrupt->addAction("SIGINT");
+src/SeerMainWindow.cpp:119:    QAction* interruptActionSIGKILL = menuInterrupt->addAction("SIGKILL");
+src/SeerMainWindow.cpp:120:    QAction* interruptActionSIGFPE  = menuInterrupt->addAction("SIGFPE");
+src/SeerMainWindow.cpp:121:    QAction* interruptActionSIGSEGV = menuInterrupt->addAction("SIGSEGV");
+src/SeerMainWindow.cpp:1439:            //*stopped,reason="signal-received",signal-name="SIGSEGV",signal-meaning="Segmentation fault", ...
+src/SeerMainWindow.cpp:1511:            //*stopped,reason="exited-signalled",signal-name="SIGSEGV",signal-meaning="Segmentation fault"
+src/SeerSignalValuesBrowserWidget.cpp:78:        //                  "SIGHUP","SIGINT","SIGQUIT","SIGILL","SIGTRAP","SIGABRT","SIGEMT","SIGFPE","SIGKILL","SIGBUS","SIGSEGV"
+src/SeerSignalValuesBrowserWidget.cpp:115:        //                  {name="SIGHUP",stop="Yes",print="Yes",pass="Yes",description="Hangup"},
+src/SeerSignalValuesBrowserWidget.cpp:116:        //                  {name="SIGINT",stop="Yes",print="Yes",pass="No",description="Interrupt"},
+src/SeerSignalValuesBrowserWidget.cpp:117:        //                  {name="SIGQUIT",stop="Yes",print="Yes",pass="Yes",description="Quit"},
+src/SeerSignalValuesBrowserWidget.cpp:118:        //                  {name="SIGILL",stop="Yes",print="Yes",pass="Yes",description="Illegal instruction"},
+src/SeerSignalValuesBrowserWidget.cpp:122:        //                  {name="SIGLIBRT",stop="No",print="No",pass="Yes",description="librt internal signal"}
+### G. CMake platform gates
+306:    if(WIN32) # Check if we are on Windows
+307:        set(SYSTEM_TYPE WIN32)
+313:if(UNIX AND NOT APPLE)
+### I. raw fd IO
+src/SeerConsoleWidget.cpp:85:        ssize_t n = ::write (STDOUT_FILENO, buffer, count);
+src/SeerConsoleWidget.cpp:326:        ::close(_ttyFD); _ttyFD = -1;
+src/SeerConsoleWidget.cpp:332:        ::close(_ttyFD); _ttyFD = -1;
+src/SeerConsoleWidget.cpp:375:    ::close(_ttyFD); _ttyFD = -1;
+src/SeerEditorWidgetSourceAreas.cpp:611:void SeerEditorWidgetSourceArea::open (const QString& fullname, const QString& file, const QString& alternateDirectory) {
+src/SeerEditorWidgetSourceAreas.cpp:764:void SeerEditorWidgetSourceArea::close () {

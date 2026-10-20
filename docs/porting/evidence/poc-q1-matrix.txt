@@ -1,0 +1,24 @@
+PoC Q1 console 接线矩阵结果（2026-10-20）
+==========================================
+
+- 成功标准（先于运行写定）：evidence/poc-q1-criteria.txt
+- 原始 MI 日志：本目录 poc-q1-log*.txt（拷自 .tmp/poc-q1/logs/）
+- 驱动形态：GUI 子系统 Qt 程序（模拟 Seer）经 QProcess 启动
+  gdb（MI 模式），被测程序为 t-console（console 型）/ t-gui
+  （GUI 子系统型）。
+- 窗口计数说明：tasklist /V 的「窗口标题」列在中文系统输出
+  「暂缺」（GBK），awk 过滤失真，故计数含无标题 conhost；判读以
+  增量 + driver 退出码 + 日志内容 + 专项 tasklist /V /FI 直查为准。
+
+| # | gdb 启动 | new-console | inferior | driver 退出码 | conhost 前/中/后 | 判读 |
+| - | --- | --- | --- | --- | --- | --- |
+| 1 | CREATE_NO_WINDOW | off | console 型 | 3（MI 污染） | 32/32/31 | inferior stdio 接入 gdb 的管道，MI 流被污染（log1 第 49 行起裸 INFERIOR-OUTPUT）——「不发命令」路线证伪 |
+| 2 | CREATE_NO_WINDOW | off | GUI 型 | 0 | 31/32/31 | 干净；无多余窗口（+1 = gdb 隐形控制台基线） |
+| 3 | CREATE_NO_WINDOW | on | console 型 | 0 | 31/34/32 | MI 干净；inferior 弹**可见**独立控制台（专项实证：t-console.exe 窗口标题 = 完整 exe 路径）；-gdb-set new-console on 返回 ^done |
+| 4 | CREATE_NO_WINDOW | on | GUI 型 | 0 | 31/32/31 | MI 干净；GUI 型不弹任何窗口（与基线一致）——D3 预期在 new-console 下成立 |
+| 5 | 无标志 | off | console 型 | 3（MI 污染） | 31/33/32 | gdb 自身弹黑窗 + MI 污染——CREATE_NO_WINDOW 必要性证据 |
+
+结论（D4）：Windows 启动调试时发 `-gdb-set new-console on`，
+gdb 以 `CREATE_NO_WINDOW` 启动；程序类型不探测（PE 子系统自动
+决定弹不弹）。Ctrl-C 交互与 stdin 回显需人工窗口操作，留
+Phase 5 人工验证项。

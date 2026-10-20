@@ -1,0 +1,100 @@
+=thread-group-added,id="i1"
+~"GNU gdb (GDB) 18.1\n"
+~"Copyright (C) 2026 Free Software Foundation, Inc.\n"
+~"License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law."
+~"\nType \""
+~"show copying\" and \"show warranty\" for details.\n"
+~"This GDB was configured as \"x86_64-w64-mingw32\".\n"
+~"Type \"show configuration\" for configuration details.\n"
+~"For bug reporting instructions, please see:\n"
+~"<https://www.gnu.org/software/gdb/bugs/>.\n"
+~"\n"
+~"+------------------------------------------------------------------------------+\n"
+~"| Find the GDB manual online at:                                               |\n"
+~"| \e[32;49;22;23;24;27mhttp://www.gnu.org/software/gdb/documentation/\e[m.                              |\n"
+~"| For help, type \"\e[39;49;1;23;24;27mhelp\e[m\".                                                       |\n"
+~"| Type \"\e[39;49;1;23;24;27mapropos word\e[m\" to search for commands related to \"word\".                |\n"
+~"+------------------------------------------------------------------------------+\n"
+~"\n"
+~"Reading symbols from E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow-x64.exe...\n"
+(gdb) 
+[driver] >>> -gdb-set new-console on
+^done
+(gdb) 
+[driver] >>> -gdb-set mi-async on
+^done
+(gdb) 
+[driver] mi-async accepted: yes
+[driver] >>> -break-insert main
+^done,bkpt={number="1",type="breakpoint",disp="keep",enabled="y",addr="0x0000000140001501",func="main()",file="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",fullname="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",line="13",thread-groups=["i1"],times="0",original-location="main"}
+(gdb) 
+[driver] >>> -exec-run
+=thread-group-started,id="i1",pid="15844"
+=thread-created,id="1",group-id="i1"
+*running,thread-id="1"
+=thread-created,id="2",group-id="i1"
+~"[New Thread 15844.0x9420 (id 2)]\n"
+*running,thread-id="2"
+=breakpoint-modified,bkpt={number="1",type="breakpoint",disp="keep",enabled="y",addr="0x00007ff6ca8c1501",func="main()",file="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",fullname="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",line="13",thread-groups=["i1"],times="0",original-location="main"}
+=library-loaded,id="C:/Windows/SYSTEM32/ntdll.dll",target-name="C:/Windows/SYSTEM32/ntdll.dll",host-name="C:/Windows/SYSTEM32/ntdll.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff65151000",to="0x00007fff65347af8"}]
+=library-loaded,id="C:/Windows/System32/kernel32.dll",target-name="C:/Windows/System32/kernel32.dll",host-name="C:/Windows/System32/kernel32.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff63ff1000",to="0x00007fff640b0520"}]
+=library-loaded,id="C:/Windows/System32/KernelBase.dll",target-name="C:/Windows/System32/KernelBase.dll",host-name="C:/Windows/System32/KernelBase.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff62c21000",to="0x00007fff62eed548"}]
+=library-loaded,id="C:/Windows/System32/msvcrt.dll",target-name="C:/Windows/System32/msvcrt.dll",host-name="C:/Windows/System32/msvcrt.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff63131000",to="0x00007fff631cc3f0"}]
+^running
+*running,thread-id="all"
+(gdb) 
+=library-loaded,id="C:/Program Files (x86)/Alibaba/AliedrSrv/9.6.6.187/atcuf64.dll",target-name="C:/Program Files (x86)/Alibaba/AliedrSrv/9.6.6.187/atcuf64.dll",host-name="C:/Program Files (x86)/Alibaba/AliedrSrv/9.6.6.187/atcuf64.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff38131000",to="0x00007fff383d15a8"}]
+=library-loaded,id="C:/Windows/System32/rpcrt4.dll",target-name="C:/Windows/System32/rpcrt4.dll",host-name="C:/Windows/System32/rpcrt4.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff64cd1000",to="0x00007fff64df3768"}]
+=library-loaded,id="C:/Windows/System32/advapi32.dll",target-name="C:/Windows/System32/advapi32.dll",host-name="C:/Windows/System32/advapi32.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff63801000",to="0x00007fff638af5c8"}]
+=library-loaded,id="C:/Windows/System32/sechost.dll",target-name="C:/Windows/System32/sechost.dll",host-name="C:/Windows/System32/sechost.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff64f31000",to="0x00007fff64fcd2b8"}]
+=library-loaded,id="C:/Windows/System32/bcrypt.dll",target-name="C:/Windows/System32/bcrypt.dll",host-name="C:/Windows/System32/bcrypt.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff63071000",to="0x00007fff63095af0"}]
+=thread-created,id="3",group-id="i1"
+~"[New Thread 15844.0x109a0 (id 3)]\n"
+*running,thread-id="3"
+=library-loaded,id="C:/Windows/System32/shlwapi.dll",target-name="C:/Windows/System32/shlwapi.dll",host-name="C:/Windows/System32/shlwapi.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff64141000",to="0x00007fff64199d98"}]
+=library-loaded,id="C:/Windows/SYSTEM32/version.dll",target-name="C:/Windows/SYSTEM32/version.dll",host-name="C:/Windows/SYSTEM32/version.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff5b911000",to="0x00007fff5b918428"}]
+=breakpoint-modified,bkpt={number="1",type="breakpoint",disp="keep",enabled="y",addr="0x00007ff6ca8c1501",func="main()",file="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",fullname="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",line="13",thread-groups=["i1"],times="1",original-location="main"}
+~"\n"
+~"Thread 1 hit Breakpoint 1, main () at E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp:13\n"
+~"13\t    int local = 42;\n"
+*stopped,reason="breakpoint-hit",disp="keep",bkptno="1",frame={addr="0x00007ff6ca8c1501",func="main",args=[],file="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",fullname="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",line="13",arch="i386:x86-64"},thread-id="1",stopped-threads="all"
+[driver] inferior pid=15844
+[driver] >>> -exec-next
+^running
+*running,thread-id="all"
+(gdb) 
+*stopped,reason="end-stepping-range",frame={addr="0x00007ff6ca8c1508",func="main",args=[],file="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",fullname="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",line="15",arch="i386:x86-64"},thread-id="1",stopped-threads="all"
+[driver] >>> -stack-list-frames
+^done,stack=[frame={level="0",addr="0x00007ff6ca8c1508",func="main",file="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",fullname="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",line="15",arch="i386:x86-64"}]
+(gdb) 
+[driver] >>> -data-evaluate-expression local
+^done,value="42"
+(gdb) 
+[driver] >>> -exec-continue
+^running
+*running,thread-id="all"
+(gdb) 
+[driver] >>> -exec-interrupt
+^done
+(gdb) 
+~"\nThread "
+~"1 stopped.\n"
+~"0x00007ff6ca8c154b in main () at E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp:18\n"
+~"18\t    while (GetTickCount() - start < 10000) {\n"
+*stopped,reason="signal-received",signal-name="0",signal-meaning="Signal 0",frame={addr="0x00007ff6ca8c154b",func="main",args=[],file="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",fullname="E:/Github/Tools/seer/.tmp/poc-inferiors/t-flow.cpp",line="18",arch="i386:x86-64"},thread-id="1",stopped-threads="all"
+[driver] >>> -data-evaluate-expression counter
+^done,value="1492059831"
+(gdb) 
+[driver] >>> -exec-continue
+^running
+*running,thread-id="all"
+(gdb) 
+~"[Thread 15844.0x9420 (id 2) exited with code 0]\n"
+=thread-exited,id="2",group-id="i1"
+~"[Thread 15844.0x109a0 (id 3) exited with code 0]\n"
+=thread-exited,id="3",group-id="i1"
+~"[Inferior 1 (process 15844) exited normally]\n"
+=thread-exited,id="1",group-id="i1"
+=thread-group-exited,id="i1",exit-code="0"
+*stopped,reason="exited-normally"
+[driver] SUMMARY bp=yes step=yes stack=yes val=yes interrupt=yes exit=yes errors=0

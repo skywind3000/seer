@@ -9,21 +9,20 @@
 
 ## 1. 可复跑的 grep 清单
 
-以下命令在仓库根执行；两组坑必须规避（详见
+清单已固化为入库脚本 `docs/porting/evidence/run-audit-grep.sh`：
+在仓库任意位置执行 `bash docs/porting/evidence/run-audit-grep.sh`
+即可，输出写到 `.tmp/audit-grep.txt`。脚本内置两组坑的规避（详见
 `docs/porting/environment.md`「坑」一节）：本机 grep 是 ugrep，
-模式以 `/` 开头必须 `-e` 显式给出，且必须加 `MSYS_NO_PATHCONV=1`
+模式以 `/` 开头必须 `-e` 显式给出，且前置 `MSYS_NO_PATHCONV=1`
 防止 Git Bash 把模式当 POSIX 路径转换掉（曾造成 `/tmp` 静默漏报）。
+模式组：A PTY/termios/ioctl/fcntl，B POSIX 头文件，C 进程/IO 调用
+（kill/fork/exec/waitpid/fsync/pipe/dup2/getpwuid/mkstemp），D
+/proc 与 /tmp、/dev 路径硬编码，E QSocketNotifier，F SIG 宏，
+G CMake 平台门，I 裸 fd IO。
 
-    MSYS_NO_PATHCONV=1 { \
-    echo "### A. PTY/termios/ioctl/fcntl"; grep -rnE "termios|posix_openpt|grantpt|unlockpt|ptsname|TIOCS|TIOCG|cfset|tcgetattr|tcsetattr|fcntl|O_NDELAY|ioctl\s*\(" src --include='*.cpp' --include='*.h'; \
-    echo "### B. POSIX headers"; grep -rnE "#include\s*<(unistd|pwd|sys/ioctl|sys/wait|sys/types|dirent|signal|pthread)\.h>" src --include='*.cpp' --include='*.h'; \
-    echo "### C. process/IO calls"; grep -rnE "\bkill\s*\(|\bfork\s*\(|\bexec(v|l|p)[a-z]*\s*\(|\bwaitpid\s*\(|\bfsync\s*\(|\bpipe\s*\(|\bdup2\s*\(|\bgetpwuid|\bmkstemp|\bmkdtemp" src --include='*.cpp' --include='*.h'; \
-    echo "### D. /proc 与路径硬编码"; grep -rn -e "/proc/" -e "/tmp" -e "/dev/" src --include='*.cpp' --include='*.h'; \
-    echo "### E. QSocketNotifier"; grep -rn "QSocketNotifier" src --include='*.cpp' --include='*.h'; \
-    echo "### F. signals"; grep -rnE "\bSIG[A-Z]+\b" src --include='*.cpp' --include='*.h'; \
-    echo "### G. CMake platform gates"; grep -nE "UNIX|WIN32|APPLE|LINUX" src/CMakeLists.txt; \
-    echo "### I. raw fd IO"; grep -rnE "::open\s*\(|::close\s*\(|::read\s*\(|::write\s*\(|::fsync\s*\(" src --include='*.cpp' --include='*.h'; \
-    } 2>&1 | tee .tmp/audit-grep.txt
+2026-10-20 复核时按脚本复跑：74 行输出，全部命中归入第 3 节条目
+或第 5 节误报标注，零未解释命中（输出存
+`evidence/audit-grep-final.txt`）。
 
 ## 2. gdb/mi 交互链路（移植的主要风险面）
 
@@ -68,8 +67,8 @@ console 程序（gdb.exe）时 Windows 默认会给它弹一个控制台黑窗�
 | A1 | `SeerConsoleWidget.cpp:19-24`（头文件）、`:266-272`（stdin：write+fsync）、`:286-305`（stdout：read+EIO 断开）、`:308-363`（createTerminal：posix_openpt/grantpt/unlockpt/fcntl O_NDELAY/TIOCSWINSZ 80x20/TIOCSCTTY/ptsname）、`:375`（close）、`:390-392`（QSocketNotifier 监听裸 fd） | PTY 全生命周期 | master fd + `/dev/pts/N` 设备名，交给 gdb 作为 inferior 的 stdio | 依 D1 不再需要：该控件在 Windows 隐藏；编译隔离（悬空 POSIX 调用移出 Windows 编译路径——#ifdef 最小化或平台后端文件，Phase 3 spec 定）。控件内的 ANSI 渲染（QAnsiTextEdit）本身是纯 Qt，无耦合 | 低 | 有方案（D1） |
 | A2 | `SeerGdbWidget.cpp:2049-2058`，调用点 `:935/1079/1183/1304/1425` | `-inferior-tty-set <设备名>` | 把 PTY slave 设备名交给 gdb，inferior 的 stdio 指向它 | 依 D1/D3：Windows 不发该命令，也不探测程序类型——终端程序由 Windows 自动弹控制台、GUI 程序不弹（PE 子系统决定）；是否补发 `-gdb-set new-console on` 由 Phase 2 Q1 的 2×2 PoC 实测；同时保证 gdb 自身无黑窗（A8）。R7 | 中 | 有方案（D1/D3，PoC 待做） |
 | A3 | `QProcessInfo.cpp:14-17`（头）、`:26-32`（exe 符号链接）、`:35-57`（status 文件）、`:60-81`（Uid + `getpwuid`）、`:84-114`（cmdline）、`:119-143`（遍历 /proc） | 进程枚举（attach 对话框用） | 读 `/proc` 文件系统拼出 pid/名字/路径/用户/命令行 | Toolhelp32 快照（`CreateToolhelp32Snapshot`）给 pid/进程名/路径；username 可用进程 owner SID→名字（可选）；cmdline 代价高（读 PEB 或 WMI），可先留空。入口只有 `populate()` 两个静态函数，接口抽象面小 | 低 | 有候选 |
-| A4 | `SeerGdbWidget.cpp:3899-3931`（`kill()` + `strsignal`）、`:1749-1777`（SIG 宏）、`SeerMainWindow.cpp:118-121`（中断菜单） | POSIX `kill(pid, sig)` 直发 inferior，信号集 SIGINT/SIGKILL/SIGFPE/SIGSEGV/SIGUSR1/SIGUSR2 | 绕过 gdb 直接发信号——注释说明原因：`-exec-until` 落到别处时 `-exec-interrupt` 无效 | 候选 a：全部改走 gdb（`-exec-interrupt` 或 CLI `signal N`）；候选 b：Win32 API（GenerateConsoleCtrlEvent 发 Ctrl-C / DebugBreakProcess / TerminateProcess）。注意 MinGW CRT **没有** SIGKILL/SIGUSR1/SIGUSR2 宏，`kill()` 也没有——这部分代码原样必编译失败。行为等价性需 Phase 2 PoC 验证（R3/R7 相关） | 中 | 有候选（PoC 待做） |
-| A5 | `SeerGdbWidget.cpp:36-38` | 悬空 include：`fcntl.h` / `termios.h` / `sys/ioctl.h`（全文件无任何调用，残留物；`unistd.h`/`signal.h` 有实际使用） | 无 | 直接删除这三行（对 Linux 构建无影响——回归验证即可）；MinGW 有 `unistd.h`/`fcntl.h`，无 `termios.h`/`sys/ioctl.h` | 低 | 有方案（删除） |
+| A4 | `SeerGdbWidget.cpp:3899-3931`（`kill()` + `strsignal`）、`:1749-1777`（SIG 宏）、`SeerMainWindow.cpp:118-121`（中断菜单） | POSIX `kill(pid, sig)` 直发 inferior，信号集 SIGINT/SIGKILL/SIGFPE/SIGSEGV/SIGUSR1/SIGUSR2 | 绕过 gdb 直接发信号——注释说明原因：`-exec-until` 落到别处时 `-exec-interrupt` 无效 | 候选 a：全部改走 gdb（`-exec-interrupt` 或 CLI `signal N`）；候选 b：Win32 API（GenerateConsoleCtrlEvent 发 Ctrl-C / DebugBreakProcess / TerminateProcess）。注意 MinGW CRT **没有** SIGKILL/SIGUSR1/SIGUSR2 宏，`kill()` 也没有——这部分代码原样必编译失败。行为等价性需 Phase 2 PoC 验证（R3/R7 相关）。2026-10-20 复核：MinGW 实编译证实 SIGKILL/SIGUSR1/`kill`/`strsignal` 全部编译失败（SIGINT/SIGFPE/SIGSEGV 可用） | 中 | 有候选（Phase 2 已定案，见 decisions.md D5） |
+| A5 | `SeerGdbWidget.cpp:34,36-38` | 悬空 include：`unistd.h` / `fcntl.h` / `termios.h` / `sys/ioctl.h`（全文件无任何调用，残留物；POSIX 头里只有 `signal.h`（`:39`）因 kill/SIG 宏被实际使用） | 无 | 直接删除这四行（对 Linux 构建无影响——回归验证即可）；MinGW 有 `unistd.h`/`fcntl.h`，无 `termios.h`/`sys/ioctl.h` | 低 | 有方案（删除；`unistd.h` 亦悬空为 2026-10-20 复核实测） |
 | A6 | `SeerGdbWidget.cpp:1490`（save breakpoints）、`:1517`（remove）、`:2034`（构造文件名）、`:2046`（source 恢复）、`:3733`（MI 脚本从资源拷出后让 gdb source） | 硬编码 `/tmp`，共 5 处 | gdb 的 `save/source` 命令需要真实文件路径 | `QDir::tempPath()`（Qt 跨平台）一次替换 5 处；注意 `/tmp/breakpoints.seer.%1` 的语义是「本进程独占临时文件」 | 低 | 有候选 |
 | A7 | `src/CMakeLists.txt:313`（`-Wall` 等仅 `UNIX AND NOT APPLE`）、`:342`（`SEER_GDB_NAME` 默认 `/usr/bin/gdb`）、`SEER_GDB_LAUNCHER`（flatpak-spawn，默认空） | CMake 平台门与默认值 | Linux 默认路径与警告选项 | 警告选项加 `MINGW` 分支；`SEER_GDB_NAME` 在 WIN32 下默认改 `gdb`（靠 PATH 解析）或 `gdb.exe`；launcher 默认空串不阻塞。CMake 工程本身可移植（Phase 0 冒烟已证 Qt6 检测可用） | 低 | 有候选 |
 | A8 | `SeerGdbWidget.cpp:3359-3426`（QProcess 启动 gdb） | 无 POSIX 调用（纯 Qt） | — | 无需改动逻辑，但 Windows 上启动 console 程序（gdb.exe）默认弹黑窗：`QProcess::setCreateProcessArgumentsModifier` 加 `CREATE_NO_WINDOW` | 低 | 有方案 |
@@ -83,7 +82,7 @@ AGENTS.md 列的四个区域全部覆盖并细化：
 | --- | --- |
 | SeerConsoleWidget（PTY） | A1、A9、A2 |
 | QProcessInfo（/proc） | A3 |
-| SeerGdbWidget（三个头文件） | A4、A5、A6（只有 `unistd.h`+`signal.h` 真有使用） |
+| SeerGdbWidget（三个头文件） | A4、A5、A6（五个 POSIX 头里只有 `signal.h` 真有使用，其余悬空） |
 | CMakeLists.txt（警告、gdb 名） | A7、A8 |
 
 **清单之外的新发现**（AGENTS.md 未记载）：
@@ -103,9 +102,10 @@ AGENTS.md 列的四个区域全部覆盖并细化：
 
 - **入表**：A-I 各组的有效命中全部映射到第 3 节的条目。
 - **标注为误报/非耦合的**：
-  - C 组 `help->raise()` / `_consoleWidget->raise()` /
-    `_miniMap->raise()` 等约 30 条——`\braise\s*\(` 匹配到了 Qt 的
-    窗口抬升方法，与 POSIX `raise()` 无关；
+  - C 组的 `help->raise()` 等 raise 噪声（约 30 条）只出现在最初
+    广谱 run（`evidence/audit-grep.txt`，其 C 组模式含
+    `\braise\s*\(`）——全是 Qt 的窗口抬升方法，与 POSIX `raise()`
+    无关；入库脚本的 C 组模式已去掉 raise，复跑输出中不再出现；
   - `_gdbProcess->kill()`（`:390/3512`）——`QProcess::kill()`，
     Qt 可移植 API，非 POSIX kill；
   - F 组 `SeerMainWindow.cpp:1439/1511`、
@@ -117,6 +117,9 @@ AGENTS.md 列的四个区域全部覆盖并细化：
 - **假阴性教训（已修复）**：`/tmp` 初查因 MSYS 路径转换静默漏报
   （0 命中），人工读码发现后用 `MSYS_NO_PATHCONV=1` 重跑补齐 5 处。
   复跑清单（第 1 节）已内置规避。
+- **范围说明**：清单用 `--include='*.cpp' --include='*.h'` 限定编译
+  单元；最初的广谱 run 还命中过 `src/resources/help/seergdb.hlp`
+  （帮助文档文本，非代码），不在审计范围。
 
 ## 6. 结论
 

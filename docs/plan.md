@@ -56,8 +56,8 @@
 | Phase | 名称 | 状态 | 核心产出 |
 | --- | --- | --- | --- |
 | 0 | 环境与基线 | 已完成 | 双平台工具链就绪，上游 Linux 版构建通过 |
-| 1 | 平台耦合审计 | 待复核 | `docs/porting/audit.md` |
-| 2 | 关键技术决策与 PoC | 未开始 | `docs/porting/decisions.md` + PoC 佐证 |
+| 1 | 平台耦合审计 | 已完成 | `docs/porting/audit.md` |
+| 2 | 关键技术决策与 PoC | 待复核 | `docs/porting/decisions.md`（D4–D7）+ PoC 佐证 |
 | 3 | 移植 Spec | 未开始 | `docs/porting/specs/` |
 | 4 | 垂直切片：Windows 全量构建 | 未开始 | Windows 上核心调试流程可用（console 暂缺） |
 | 5 | 平台后端补齐 | 未开始 | inferior 控制台（弹窗）/ 进程信息 / 平台杂项可用 |
@@ -161,6 +161,12 @@ noble 包名）；`seergdb` 基线构建 `[100%]` 通过，日志存
 `/tmp` 假阴性教训）；AGENTS.md 清单外新发现 5 项。出口条件中仅剩
 「主人 review」，置「待复核」。佐证：`evidence/audit-grep*.txt`。
 
+2026-10-20 复核通过（主人委托 agent 复核）。复核动作：按入库脚本
+`evidence/run-audit-grep.sh` 复跑 grep 清单（74 行，零未解释命中）；
+用 MinGW 实编译证实 A4 断言（SIGKILL/SIGUSR1/kill/strsignal 均
+不存在，SIGINT/SIGFPE/SIGSEGV 存在）；修正 A5（`unistd.h` 亦是
+悬空 include，共 4 行）。全部出口条件满足，置「已完成」。
+
 ---
 
 ## Phase 2 — 关键技术决策与 PoC
@@ -207,7 +213,13 @@ grep 清单先行（不必等审计文档完全定稿）。
 - Q1 有端到端演示日志。
 - 每条决策在 decisions.md 中都有可追溯依据；主人 review 通过。
 
-**执行记录**：
+**执行记录**：2026-10-20 开工并完成。四个 PoC：Q1 console 矩阵
+（5 组合，结论 D4：`new-console on` + `CREATE_NO_WINDOW`，
+「不发命令」路线被 MI 污染证伪）；Q2 双 gdb MI 全流程（x64 18.1 /
+x86 17.1 全过，中断定案 `mi-async on` + `-exec-interrupt`，D5）；
+Q3 Toolhelp32 枚举达标（D6）；Q4 工具链定案 MinGW64（D7）。风险
+R3、R7 已化解。成功标准与佐证存 `evidence/poc-*`。仅剩
+「主人 review」，置「待复核」。
 
 ---
 
@@ -391,11 +403,11 @@ grep 清单先行（不必等审计文档完全定稿）。
 | --- | --- | --- | --- | --- |
 | R1 | inferior 与 console 的接线：`-inferior-tty-set` 是设备名语义，Windows 无直接对应物 | 高 | 已化解（D1） | — |
 | R2 | `QSocketNotifier` 在 Windows 只支持 socket，ConPTY 管道需另行接入 Qt 事件循环（overlapped IO / 读线程） | 高 | 已化解（D1，不再做 GUI 内终端） | — |
-| R3 | 双 gdb（x64 18.1 / x86 17.1）的 mi 输出细节、地址宽度、寄存器集合差异 | 中 | open | Phase 2 Q2 |
+| R3 | 双 gdb（x64 18.1 / x86 17.1）的 mi 输出细节、地址宽度、寄存器集合差异 | 中 | 已化解（Q2 实证全流程通过，差异清单见 D5） | Phase 2 Q2 |
 | R4 | WSL2 的 Qt（apt 6.4.x）与 Windows 的 Qt（MSYS2 6.11.x）版本差，代码要同时兼容两个版本 | 中 | open | 全程 |
 | R5 | WSL2 apt 源缺 `libqt6charts6-dev` / `libqt6svg6-dev`，Phase 0 被阻 | 中 | 已化解（包名问题：noble 用 `qt6-charts-dev` / `qt6-svg-dev`） | Phase 0 |
 | R6 | `tests/` 相当一部分程序本身不可移植，验证矩阵必须先行筛选 | 低 | open | Phase 6 |
-| R7 | `new-console` 在「MI 模式 + QProcess 无控制台启动 gdb」组合下的实际行为未经证实（弹窗时机、多余窗口、Ctrl-C 传递） | 中 | open | Phase 2 Q1 |
+| R7 | `new-console` 在「MI 模式 + QProcess 无控制台启动 gdb」组合下的实际行为未经证实（弹窗时机、多余窗口、Ctrl-C 传递） | 中 | 已化解（Q1 实证见 D4；Ctrl-C 人工交互项留 Phase 5） | Phase 2 Q1 |
 
 ## 与最初八步设想的映射
 

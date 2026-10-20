@@ -82,3 +82,79 @@
   已同步更新。
 - 依据：主人 2026-10-20 决策；Visual Studio 与 vim termdebug 的
   行为参照。
+
+## D4 — Windows inferior 控制台机制定案：`new-console on` + gdb 无窗启动
+
+- 日期：2026-10-20
+- 状态：已采纳（Phase 2 Q1 PoC 实证）
+- 背景：D3 的首选「不发任何命令」路线需要实证。
+- PoC 结论（`.tmp/poc-q1`，5 组合矩阵，成功标准与佐证见
+  `evidence/poc-q1-*`）：
+  1. **默认（不发 new-console）路线被证伪**：gdb 在 Windows 上默认
+     把 inferior 的 stdio 接到自己继承的管道（即 Seer 的 MI 流），
+     inferior 输出直接污染 MI 流（evidence/poc-q1-log1 第 49 行起
+     出现裸 `INFERIOR-OUTPUT`）；
+  2. `-gdb-set new-console on`（gdb 18.1 返回 `^done`）：MI 流干净；
+     console 型 inferior 自动获得**可见**独立控制台窗口
+     （`tasklist /V` 实证：t-console.exe 的窗口标题为完整路径）；
+     GUI 型 inferior 不弹任何窗口（conhost 增量与 gdb 隐形控制台
+     基线一致）——D3 的「终端程序弹、GUI 程序不弹、无需探测」
+     预期在 new-console 下成立；
+  3. gdb 不加 `CREATE_NO_WINDOW` 会自带黑窗且同样污染 MI 流
+     （evidence/poc-q1-log5）。
+- 决策：Windows 上 Seer 启动调试时向 gdb 发 `-gdb-set new-console
+  on`，gdb 本身经 `QProcess` 以 `CREATE_NO_WINDOW` 启动；程序类型
+  不做任何探测。D3 的「首选不发命令」由本决策替代定案。
+- 影响：audit A2 候选落定；Phase 5 接线方案明确；风险 R7 化解。
+- 依据：PoC 实测（矩阵结果见 `evidence/poc-q1-matrix.txt`）。
+
+## D5 — gdb MI 兼容性与中断机制：`mi-async on` + `-exec-interrupt`
+
+- 日期：2026-10-20
+- 状态：已采纳（Phase 2 Q2 PoC 实证）
+- PoC 结论（`.tmp/poc-q2`，佐证 `evidence/poc-q2-*`）：
+  - MI 全流程（断点 / run / next / 栈 / 变量求值 / continue /
+    退出）在 gdb 18.1 x64 与 gdb 17.1 x86 上**全部通过**，
+    `^error` 计数为 0；
+  - 中断机制三级实测：① MI 同步模式（默认）下 `-exec-interrupt`
+    无法打断运行中的 inferior（与 Seer 在 Linux 的既有行为一致，
+    见 `SeerGdbWidget.cpp:3914` 注释）；② Win32 `DebugBreakProcess`
+    在 17.1 上被静默吞掉（版本依赖）；③ **`-gdb-set mi-async on`
+    + `-exec-interrupt` 两个版本均有效**（`*stopped` SIGTRAP）；
+  - 版本差异清单（实现时处理）：地址宽度 16 vs 8 位十六进制；
+    `fullname` 路径分隔符正斜杠（18.1）vs 反斜杠（17.1）；
+    `arch` 字符串 `i386:x86-64` vs `i386`。
+- 决策：Windows 上 Seer 启动 gdb 时发 `-gdb-set mi-async on`；
+  「中断」走 `-exec-interrupt`。`sendGdbInterrupt` 的信号菜单在
+  Windows 的映射：SIGINT → `-exec-interrupt`；SIGKILL →
+  `TerminateProcess`（或 gdb 的 kill）；其余信号 → 运行期禁用或
+  经 gdb 的 `signal` 命令（Phase 3 spec 细化）。
+- 影响：audit A4 候选细化为「mi-async + -exec-interrupt 为主」；
+  风险 R3 化解。
+- 依据：PoC 实测。
+
+## D6 — 进程信息后端：Toolhelp32 + QueryFullProcessImageName + token SID
+
+- 日期：2026-10-20
+- 状态：已采纳（Phase 2 Q3 PoC 实证）
+- PoC 结论（`evidence/poc-q3-output.txt`）：枚举 total=501（tasklist
+  对照 503，差 0.4%）；withPath=318（63%）；withUser=325；自身进程
+  的 pid / 名字 / 完整路径 / 用户名全部正确。成功标准 4 项全过。
+- 决策：`QProcessInfo` 的 Windows 实现采用 Toolhelp32 快照枚举 +
+  `QueryFullProcessImageNameW` 取路径 + 进程 token 的 SID 经
+  `LookupAccountSidW` 取用户名；cmdline 留空（日后需要再走 PEB /
+  WMI，另立决策）。
+- 影响：audit A3 候选落定。
+- 依据：PoC 实测。
+
+## D7 — 工具链定案：MinGW64，MSVC 出局
+
+- 日期：2026-10-20
+- 状态：已采纳
+- 决策：Windows 原生构建只用 MSYS2 MinGW64。MSVC 不作为 Seer 的
+  构建路径（如个别行为需要 VC 对照验证，仅编译测试片段，不进
+  构建体系）。
+- 依据：Phase 0 冒烟与 Phase 2 全部 PoC 均在 MinGW64 上通过；
+  MSVC 路线需另装 Qt-MSVC（本机没有）且无对应收益——被调试目标
+  以 MinGW 构建为主，gdb 与 MSYS2 工具链生态一致，
+  `AGENTS.local.md` 的整套环境也按 MinGW64 搭建。

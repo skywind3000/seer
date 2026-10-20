@@ -1,0 +1,64 @@
+=thread-group-added,id="i1"
+~"GNU gdb (GDB) 18.1\n"
+~"Copyright (C) 2026 Free Software Foundation, Inc.\n"
+~"License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\nThis is free software: you are free to change and redistribute it.\nThere is NO WARRANTY, to the extent permitted by law."
+~"\nType \""
+~"show copying\" and \"show warranty\" for details.\n"
+~"This GDB was configured as \"x86_64-w64-mingw32\".\n"
+~"Type \"show configuration\" for configuration details.\n"
+~"For bug reporting instructions, please see:\n"
+~"<https://www.gnu.org/software/gdb/bugs/>.\n"
+~"\n"
+~"+------------------------------------------------------------------------------+\n"
+~"| Find the GDB manual online at:                                               |\n"
+~"| \e[32;49;22;23;24;27mhttp://www.gnu.org/software/gdb/documentation/\e[m.                              |\n"
+~"| For help, type \"\e[39;49;1;23;24;27mhelp\e[m\".                                                       |\n"
+~"| Type \"\e[39;49;1;23;24;27mapropos word\e[m\" to search for commands related to \"word\".                |\n"
+~"+------------------------------------------------------------------------------+\n"
+~"\n"
+~"Reading symbols from E:/Github/Tools/seer/.tmp/poc-inferiors/t-console.exe...\n"
+(gdb) 
+
+[driver] === commands ===
+^done
+(gdb) 
+=thread-group-started,id="i1",pid="47988"
+=thread-created,id="1",group-id="i1"
+*running,thread-id="1"
+=thread-created,id="2",group-id="i1"
+~"[New Thread 47988.0xe84 (id 2)]\n"
+*running,thread-id="2"
+=library-loaded,id="C:/Windows/SYSTEM32/ntdll.dll",target-name="C:/Windows/SYSTEM32/ntdll.dll",host-name="C:/Windows/SYSTEM32/ntdll.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff65151000",to="0x00007fff65347af8"}]
+=library-loaded,id="C:/Windows/System32/kernel32.dll",target-name="C:/Windows/System32/kernel32.dll",host-name="C:/Windows/System32/kernel32.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff63ff1000",to="0x00007fff640b0520"}]
+=library-loaded,id="C:/Windows/System32/KernelBase.dll",target-name="C:/Windows/System32/KernelBase.dll",host-name="C:/Windows/System32/KernelBase.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff62c21000",to="0x00007fff62eed548"}]
+=library-loaded,id="C:/Windows/System32/msvcrt.dll",target-name="C:/Windows/System32/msvcrt.dll",host-name="C:/Windows/System32/msvcrt.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff63131000",to="0x00007fff631cc3f0"}]
+^running
+*running,thread-id="all"
+(gdb) 
+=library-loaded,id="C:/Program Files (x86)/Alibaba/AliedrSrv/9.6.6.187/atcuf64.dll",target-name="C:/Program Files (x86)/Alibaba/AliedrSrv/9.6.6.187/atcuf64.dll",host-name="C:/Program Files (x86)/Alibaba/AliedrSrv/9.6.6.187/atcuf64.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff38131000",to="0x00007fff383d15a8"}]
+=library-loaded,id="C:/Windows/System32/rpcrt4.dll",target-name="C:/Windows/System32/rpcrt4.dll",host-name="C:/Windows/System32/rpcrt4.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff64cd1000",to="0x00007fff64df3768"}]
+=library-loaded,id="C:/Windows/System32/advapi32.dll",target-name="C:/Windows/System32/advapi32.dll",host-name="C:/Windows/System32/advapi32.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff63801000",to="0x00007fff638af5c8"}]
+=library-loaded,id="C:/Windows/System32/sechost.dll",target-name="C:/Windows/System32/sechost.dll",host-name="C:/Windows/System32/sechost.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff64f31000",to="0x00007fff64fcd2b8"}]
+=library-loaded,id="C:/Windows/System32/bcrypt.dll",target-name="C:/Windows/System32/bcrypt.dll",host-name="C:/Windows/System32/bcrypt.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff63071000",to="0x00007fff63095af0"}]
+=thread-created,id="3",group-id="i1"
+~"[New Thread 47988.0xa880 (id 3)]\n"
+*running,thread-id="3"
+=library-loaded,id="C:/Windows/System32/shlwapi.dll",target-name="C:/Windows/System32/shlwapi.dll",host-name="C:/Windows/System32/shlwapi.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff64141000",to="0x00007fff64199d98"}]
+=library-loaded,id="C:/Windows/SYSTEM32/version.dll",target-name="C:/Windows/SYSTEM32/version.dll",host-name="C:/Windows/SYSTEM32/version.dll",symbols-loaded="0",thread-group="i1",ranges=[{from="0x00007fff5b911000",to="0x00007fff5b918428"}]
+=thread-created,id="4",group-id="i1"
+~"[New Thread 47988.0x2aa4 (id 4)]\n"
+*running,thread-id="4"
+~"[Thread 47988.0x2aa4 (id 4) exited with code 0]\n"
+=thread-exited,id="4",group-id="i1"
+~"[Thread 47988.0xa880 (id 3) exited with code 0]\n"
+=thread-exited,id="3",group-id="i1"
+~"[Thread 47988.0xe84 (id 2) exited with code 0]\n"
+=thread-exited,id="2",group-id="i1"
+~"[Inferior 1 (process 47988) exited normally]\n"
+=thread-exited,id="1",group-id="i1"
+=thread-group-exited,id="i1",exit-code="0"
+*stopped,reason="exited-normally"
+(gdb) 
+
+[driver] === shutdown ===
+[driver] done

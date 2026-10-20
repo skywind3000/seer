@@ -1,0 +1,4 @@
+total=502 withPath=316 withUser=327
+self pid=36148 name=procinfo.exe
+self path=E:\Github\Tools\seer\.tmp\poc-q3\procinfo.exe
+self user=Linwei

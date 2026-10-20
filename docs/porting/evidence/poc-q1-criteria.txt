@@ -1,0 +1,27 @@
+# PoC Q1 成功标准（先于运行写定，2026-10-20）
+
+问题：D1/D3 的 console 路线在「gdb 无控制台」组合下是否成立。
+driver 为 GUI 子系统 Qt 程序，模拟 Seer 用 QProcess 启动 gdb（MI 模式）。
+
+## 矩阵
+
+| # | gdb 启动 | new-console | inferior | 预期 |
+| - | --- | --- | --- | --- |
+| 1 | CREATE_NO_WINDOW | off | console 型 | 弹独立控制台（有标题 conhost 窗口 +1）；MI 流不含 INFERIOR-OUTPUT |
+| 2 | CREATE_NO_WINDOW | off | GUI 型 | 不弹任何窗口；MI 流不含 INFERIOR-OUTPUT |
+| 3 | CREATE_NO_WINDOW | on | console 型 | 弹独立控制台；MI 流不含 INFERIOR-OUTPUT |
+| 4 | CREATE_NO_WINDOW | on | GUI 型 | 不弹窗口（若弹则 new-console 对 GUI 程序不可用）；MI 流不含污染 |
+| 5 | 默认（无标志） | off | console 型 | gdb 自身弹黑窗（佐证 A8：必须 CREATE_NO_WINDOW） |
+
+## 判定与后续
+
+- 检测方式：`tasklist /V` 统计「有标题」的 conhost 窗口（窗口标题
+  同时用于归因：inferior 名 or gdb 路径）；MI 日志全文检索
+  INFERIOR-OUTPUT；driver 退出码 3 = MI 流被污染。
+- 全部符合预期 → 首选「不发命令」路线（D3 预期成立）。
+- #1 污染而 #3 干净 → 必须 `new-console on`（D4 记录）。
+- #4 弹窗且 #1 干净 → 只能「不发命令」。
+- #1 污染且 #4 弹窗 → 冲突，需按 inferior 的 PE 子系统分流（D4 记录
+  并升级风险）。
+- Ctrl-C 交互与 stdin 回显需要人工窗口操作，不在本 PoC 范围，
+  留 Phase 5 的人工验证项。

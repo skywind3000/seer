@@ -1,0 +1,44 @@
+# PoC Q2 成功标准（先于运行写定，2026-10-20）
+
+问题：Windows 原生 gdb 的 MI 全流程是否可用，双架构差异是否可控。
+
+## 流程（对 gdb 18.1 x64 + gdb 17.1 x86 各跑一遍，inferior 为对应架构的 t-flow）
+
+断点 main → -exec-run（命中断点）→ -exec-next → -stack-list-frames
+→ -data-evaluate-expression local → -exec-continue（进入忙循环）
+→ -exec-interrupt（打断）→ -data-evaluate-expression counter
+→ -exec-continue → 程序正常退出。
+
+## 成功标准（两个 gdb 均须满足）
+
+1. 全流程 MI 命令零 `^error` 记录；
+2. `*stopped,reason="breakpoint-hit"` 出现；
+3. `-exec-next` 后有新的 `*stopped`；
+4. `-stack-list-frames` 返回 `^done,stack=[`；
+5. `-data-evaluate-expression local` 返回 `^done,value=`（值应为 42）；
+6. `-exec-interrupt` 能打断忙循环（新的 `*stopped`）；
+7. `*stopped,reason="exited-normally"` 出现；
+8. driver 退出码 0。
+
+## 差异记录要求
+
+地址宽度（x86 8 位十六进制 vs x64 16 位）、寄存器名集合、MI 输出
+细节差异逐条记入日志，作为 A4 与风险 R3 的实证材料。
+
+## 增补（2026-10-20，实测后如实记录）
+
+- 判定 6「-exec-interrupt 能打断忙循环」在 MI 同步模式（默认）下
+  **失败**：命令发出后 inferior 继续运行至自然退出。印证了 Seer 源码
+  `SeerGdbWidget.cpp:3914` 的注释（Linux 上同样因 -exec-interrupt
+  失效才改用 kill()）。
+- v2 尝试 Win32 `DebugBreakProcess(pid)`：gdb 18.1 x64 可停
+  （`*stopped,reason="signal-received",signal-name="SIGTRAP"`）；
+  gdb 17.1 x86 会静默吞掉注入的断点线程，inferior 不停——
+  版本依赖，不可作为通用方案。
+- v3 最终方案：启动时 `-gdb-set mi-async on`，运行中用
+  `-exec-interrupt`——两个 gdb 均通过全部成功标准（退出码 0，
+  errors=0）。按 v3 口径，本文件上述 8 条标准在两个 gdb 上
+  全部满足。
+- 顺带实证的版本差异：地址宽度 16 vs 8 位 hex；`fullname` 路径
+  分隔符正斜杠（18.1）vs 反斜杠（17.1）；`arch` 字符串
+  `i386:x86-64` vs `i386`。
