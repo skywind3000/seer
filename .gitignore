@@ -77,4 +77,7 @@ __pycache__/*
 nul
 
 
-*.cmd
+*.cmd# hellopathnorm build artifacts
+tests/hellopathnorm/hellopathnorm
+tests/hellopathnorm/hellopathnorm.exe
+tests/hellopathnorm/moc_*.cpp
