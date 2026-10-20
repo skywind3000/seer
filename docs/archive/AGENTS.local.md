@@ -39,11 +39,15 @@ cmd / PowerShell 里用 Windows 路径：
 | `mingw32-make` | — | 注意名字不是 `make` |
 | `windres` | — | 资源编译器 |
 
-### 还没装的（构建 Seer 前必须先装）
+### 安装状态（2026-10-20 实测：已全部装好）
 
-`D:\Linux\mingw64\bin` 下目前**没有** `cmake`、`ninja`、`pkg-config`，
-也**没有** Qt6（`qmake` / `moc` / `uic` / `lib/cmake/Qt6` 全都不存在）。
-这些统一用 pacman 装 mingw64 版本，见第 2、3 节。
+`pacman -Q` 实测：`mingw-w64-x86_64-cmake` 4.4.4-3、
+`mingw-w64-x86_64-ninja` 1.13.2-1、`mingw-w64-x86_64-qt6-base`
+6.11.2-2、`mingw-w64-x86_64-qt6-svg` 6.11.2-1、
+`mingw-w64-x86_64-qt6-charts` 6.11.2-1。`D:\Linux\mingw64\bin` 下
+Qt6 的 `moc` / `uic` 等工具齐全，`lib/cmake/` 下各模块的 CMake
+配置齐全（`find_package(Qt6)` 可用，冒烟测试已验证，见
+`docs/porting/environment.md`）。
 
 MSYS 层 `D:\Linux\usr\bin` 里有 `make` 和 `pkg-config`，但那是 MSYS
 运行时的，不能拿来构建 mingw64 目标，别混用。
@@ -176,9 +180,12 @@ PrintSupport、Charts、Svg、OpenGL。其中 Charts 和 Svg 是独立包，其�
 
     wsl.exe -d Ubuntu-24.04 -- bash -lc "<命令>"
 
-注意该 WSL2 环境目前也没装 Qt6 开发包，`libqt6charts6-dev` 和
-`libqt6svg6-dev` 在已启用的 apt 源里还没有候选版本，首次构建前需要先
-解决。
+Qt6 开发包已装（2026-10-20）：`qt6-base-dev`、`qt6-charts-dev`、
+`qt6-svg-dev`，均 6.4.2。注意 Ubuntu 24.04（noble）的包名就是
+`qt6-charts-dev` / `qt6-svg-dev`，**不是** `libqt6charts6-dev` /
+`libqt6svg6-dev`（后者在源里没有候选版本，早前探测记录「无候选」
+就是包名用错所致；universe 组件本身一直是启用状态）。Linux 基线
+构建已通过，详见 `docs/porting/environment.md`。
 
 （另有一个 WSL1 的 `Debian`，本项目不用。）
 
