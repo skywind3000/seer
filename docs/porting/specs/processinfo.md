@@ -11,6 +11,11 @@
   包裹，实现同名的两个静态成员函数（与 Linux 版在链接期二选一）。
   该文件内可用 `windows.h` / `tlhelp32.h`，是全移植**唯一**的
   Win32 新代码文件。
+  注意实现时的宏陷阱（Phase 4 实测踩过）：`Q_OS_WIN` 由 Qt 头
+  定义，而该文件的守卫在任何 Qt include 之前——必须先
+  `#include <QtCore/QtGlobal>` 再 `#ifdef Q_OS_WIN`，否则整个文件
+  被静默编译为空翻译单元、链接期报符号未定义。既有文件的守卫都
+  在 Qt include 之后，天然无此问题。
 
 ## Windows 实现要点（按 D6，机制已在 PoC Q3 验证）
 

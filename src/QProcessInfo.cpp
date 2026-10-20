@@ -11,11 +11,17 @@
 #include <QtCore/QTextStream>
 #include <QtCore/QDebug>
 #include <stdlib.h>
+#ifndef Q_OS_WIN
 #include <pwd.h>
+#endif
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/types.h>
 
+
+// The /proc-based implementations below are Linux-only; the Windows
+// versions live in QProcessInfo_win.cpp.
+#ifndef Q_OS_WIN
 
 QProcessInfo QProcessInfo::populate(uint32_t pid) {
 
@@ -115,7 +121,9 @@ QProcessInfo QProcessInfo::populate(uint32_t pid) {
 
     return info;
 }
+#endif
 
+#ifndef Q_OS_WIN
 QProcessList QProcessInfo::populate() {
 
     QProcessList ret;
@@ -141,6 +149,7 @@ QProcessList QProcessInfo::populate() {
 
     return ret;
 }
+#endif
 
 QProcessInfo::QProcessInfo() {
     _pid = 0;

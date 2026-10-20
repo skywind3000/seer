@@ -122,6 +122,15 @@ SeerMainWindow::SeerMainWindow(QWidget* parent) : QMainWindow(parent) {
     QAction* interruptActionSIGUSR1 = menuInterrupt->addAction("SIGUSR1");
     QAction* interruptActionSIGUSR2 = menuInterrupt->addAction("SIGUSR2");
 
+#ifdef Q_OS_WIN
+    // No kill() semantics for these signals on Windows; the ones we
+    // can map (SIGINT, SIGKILL) stay visible.
+    interruptActionSIGFPE->setVisible(false);
+    interruptActionSIGSEGV->setVisible(false);
+    interruptActionSIGUSR1->setVisible(false);
+    interruptActionSIGUSR2->setVisible(false);
+#endif
+
     actionInterruptProcess->setMenu(menuInterrupt);
 
     // Set up Visualizer menu.

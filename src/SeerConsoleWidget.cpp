@@ -19,8 +19,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <fcntl.h>
+#ifndef Q_OS_WIN
 #include <termios.h>
 #include <sys/ioctl.h>
+#endif
 #include <unistd.h>
 
 SeerConsoleWidget::SeerConsoleWidget (QWidget* parent) : QWidget(parent) {
@@ -235,7 +237,11 @@ void SeerConsoleWidget::handleStdoutCheckBox () {
     }
 
     // If stdout is not valid, don't set it.
+#ifndef Q_OS_WIN
     if (fcntl(STDOUT_FILENO, F_GETFD) == -1) {
+#else
+    if (true) { // MinGW has no fcntl()/F_GETFD; no usable stdout in a Windows GUI build.
+#endif
 
         QMessageBox::critical(this, tr("Error"), tr("stdout file descriptor is not valid.\nDisabling writing to stdout."));
 
@@ -269,7 +275,9 @@ void SeerConsoleWidget::handleStdinLineEdit () {
         qWarning() << "Not able to process stdin of" << s.length() << "bytes.";
     }
 
+#ifndef Q_OS_WIN
     fsync(_ttyFD);
+#endif
 }
 
 void SeerConsoleWidget::handleTerminalOutput (int socketfd) {
@@ -307,6 +315,10 @@ void SeerConsoleWidget::handleTerminalOutput (int socketfd) {
 
 void SeerConsoleWidget::createTerminal () {
 
+#ifndef Q_OS_WIN
+    // The PTY APIs used below don't exist on Windows. On Windows the
+    // terminal is never created, which keeps terminalDeviceName()
+    // empty and makes the inferior wiring skip the tty setup.
     // Is terminal already created?
     if (isTerminalCreated()) {
         qDebug() << "Terminal already created!";
@@ -360,6 +372,7 @@ void SeerConsoleWidget::createTerminal () {
     // Set maximum blocks to 0 (unlimited).
     // The createTerminal can be followed with a setScrollLines() call.
     setScrollLines(0);
+#endif
 }
 
 void SeerConsoleWidget::deleteTerminal () {

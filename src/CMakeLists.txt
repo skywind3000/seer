@@ -177,6 +177,7 @@ set(HEADER_FILES
 set(SOURCE_FILES
     GdbMonitor.cpp
     QProcessInfo.cpp
+    QProcessInfo_win.cpp
     QProcessInfoWidget.cpp
     QProgressIndicator.cpp
     QColorButton.cpp
@@ -310,7 +311,7 @@ if(NOT CMAKE_BUILD_TYPE MATCHES Debug) #Release, RelWithDebInfo and MinSizeRel
 endif()
 
 # for Linux, BSD, Solaris, Minix
-if(UNIX AND NOT APPLE)
+if((UNIX AND NOT APPLE) OR WIN32)
     add_compile_options(-Wall -Wextra -Wunused-result -pedantic)   # -Werror -Wdeprecated-copy
 endif()
 
@@ -339,7 +340,11 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 # Handle default gdb binary name and location.
 # -DCONFIG_SEER_GDB_NAME=/app/bin/gdb
 if(NOT DEFINED CONFIG_SEER_GDB_NAME)
-    set(CONFIG_SEER_GDB_NAME "/usr/bin/gdb")
+    if(WIN32)
+        set(CONFIG_SEER_GDB_NAME "gdb")
+    else()
+        set(CONFIG_SEER_GDB_NAME "/usr/bin/gdb")
+    endif()
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE

@@ -176,6 +176,12 @@ void SeerCommandLogsWidget::createConsole () {
 
         _consoleIndex = logsTabWidget->addTab(_consoleWidget, "Console output");
 
+#ifdef Q_OS_WIN
+        // No in-GUI console on Windows (see docs/porting/decisions.md D1) :
+        // the debugged program gets its own console window instead.
+        logsTabWidget->setTabVisible(_consoleIndex, false);
+#endif
+
         QObject::connect(_consoleWidget, &SeerConsoleWidget::newTextAdded,  this, &SeerCommandLogsWidget::handleConsoleNewTextAdded);
         QObject::connect(_consoleWidget, &SeerConsoleWidget::newTextViewed, this, &SeerCommandLogsWidget::handleConsoleNewTextViewed);
 

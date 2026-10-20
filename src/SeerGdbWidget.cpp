@@ -31,14 +31,20 @@
 #include <QtCore/QThread>
 #include <QtCore/QDebug>
 #include <QtGlobal>
-#include <unistd.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <termios.h>
-#include <sys/ioctl.h>
 #include <signal.h>
 #include <string.h>
 #include <errno.h>
+
+#ifdef Q_OS_WIN
+// The MinGW CRT lacks the POSIX-only signal macros (SIGKILL, SIGUSR1,
+// SIGUSR2). Define placeholders so the interrupt handlers and the
+// dispatch in sendGdbInterrupt() keep compiling. On Windows the values
+// are only compared, never sent to the inferior.
+#define SIGKILL  9
+#define SIGUSR1 10
+#define SIGUSR2 12
+#endif
 
 static QLoggingCategory LC("seer.gdbwidget");
 
@@ -89,6 +95,14 @@ SeerGdbWidget::SeerGdbWidget (QWidget* parent) : QWidget(parent) {
 
     // Create the gdb process.
     _gdbProcess = new QProcess(this);
+
+#ifdef Q_OS_WIN
+    // Keep gdb.exe (a console application) from popping up its own
+    // console window when launched from this GUI application.
+    _gdbProcess->setCreateProcessArgumentsModifier([](QProcess::CreateProcessArguments* args) {
+        args->flags |= 0x08000000u; // CREATE_NO_WINDOW
+    });
+#endif
 
     // Create the gdb monitor.
     _gdbMonitor = new GdbMonitor(this);
@@ -1487,7 +1501,7 @@ void SeerGdbWidget::handleGdbTerminateExecutable (bool confirm) {
                 }
             }
 
-            handleGdbCommand(QString("save breakpoints /tmp/breakpoints.seer.%1").arg(QCoreApplication::applicationPid()), true);
+            handleGdbCommand(QString("save breakpoints " + QDir::tempPath() + "/breakpoints.seer.%1").arg(QCoreApplication::applicationPid()), true);
             delay(2);
 
             // Give the gdb and 'exit' command.
@@ -1514,7 +1528,7 @@ void SeerGdbWidget::handleGdbTerminateExecutable (bool confirm) {
 void SeerGdbWidget::handleGdbShutdown () {
 
     // Remove session breakpoint file, if any.
-    QFile::remove(QString("/tmp/breakpoints.seer.%1").arg(QCoreApplication::applicationPid()));
+    QFile::remove(QDir::tempPath() + QString("/breakpoints.seer.%1").arg(QCoreApplication::applicationPid()));
 
     // Do nothing if there's not gdb running.
     if (isGdbRuning() == false) {
@@ -2031,7 +2045,7 @@ void SeerGdbWidget::handleGdbExecutablePostCommands () {
 
 void SeerGdbWidget::handleGdbSessionLoadBreakpoints () {
 
-    QString filename = QString("/tmp/breakpoints.seer.%1").arg(QCoreApplication::applicationPid());
+    QString filename = QDir::tempPath() + QString("/breakpoints.seer.%1").arg(QCoreApplication::applicationPid());
 
     if (QFile::exists(filename) == false) {
         return;
@@ -2043,11 +2057,18 @@ void SeerGdbWidget::handleGdbSessionLoadBreakpoints () {
 
 void SeerGdbWidget::handleGdbSessionSaveBreakpoints () {
 
-    handleGdbCommand(QString("source -v /tmp/breakpoints.seer.%1").arg(QCoreApplication::applicationPid()));
+    handleGdbCommand(QString("source -v " + QDir::tempPath() + "/breakpoints.seer.%1").arg(QCoreApplication::applicationPid()));
 }
 
 void SeerGdbWidget::handleGdbTerminalDeviceName () {
 
+#ifdef Q_OS_WIN
+    // Don't attach the inferior to a tty on Windows. Ask gdb to give
+    // the inferior its own console instead : console programs get a
+    // visible window, GUI programs get none, and the inferior's stdio
+    // stays out of the MI stream.
+    handleGdbCommand("-gdb-set new-console on");
+#else
     if (commandLogsWidget->console()->terminalDeviceName() != "") {
 
         handleGdbCommand(QString("-inferior-tty-set ") + commandLogsWidget->console()->terminalDeviceName());
@@ -2055,6 +2076,7 @@ void SeerGdbWidget::handleGdbTerminalDeviceName () {
     }else{
         qWarning() << "Can't set TTY name because the name is blank.";
     }
+#endif
 }
 
 void SeerGdbWidget::handleGdbStackListFrames () {
@@ -3730,7 +3752,7 @@ void SeerGdbWidget::handleGdbLoadMICommands () {
         }
 
         // Destination file path in /tmp.
-        QString destinationPath = "/tmp/" + miInfo.fileName();
+        QString destinationPath = QDir::tempPath() + "/" + miInfo.fileName();
 
         // Delete possible old temp version, if it exists.
         if (QFile::exists(destinationPath)) {
@@ -3921,12 +3943,29 @@ void SeerGdbWidget::sendGdbInterrupt (int signal) {
         handleGdbCommand("-exec-interrupt");
 
     }else{
+#ifdef Q_OS_WIN
+        // MinGW has no kill(). Map the signals we can to MI commands.
+        // mi-async is already enabled by the launch code, so
+        // -exec-interrupt works on a running inferior.
+        if (signal == SIGINT) {
+            handleGdbCommand("-exec-interrupt");
+            return;
+        }
+
+        if (signal == SIGKILL) {
+            handleGdbCommand("kill"); // gdb CLI : terminate the inferior.
+            return;
+        }
+
+        qWarning() << "Signal" << signal << "is not supported on Windows.";
+#else
         int stat = kill(executablePid(), signal);
         if (stat < 0) {
             QMessageBox::warning(this, "Seer",
                                        QString("Unable to send signal '%1' to pid %2.\nError = '%3'").arg(strsignal(signal)).arg(executablePid()).arg(strerror(errno)),
                                        QMessageBox::Ok);
         }
+#endif
     }
 }
 

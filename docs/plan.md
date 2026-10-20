@@ -58,8 +58,8 @@
 | 0 | 环境与基线 | 已完成 | 双平台工具链就绪，上游 Linux 版构建通过 |
 | 1 | 平台耦合审计 | 已完成 | `docs/porting/audit.md` |
 | 2 | 关键技术决策与 PoC | 已完成 | `docs/porting/decisions.md`（D4–D7）+ PoC 佐证 |
-| 3 | 移植 Spec | 待复核 | `docs/porting/specs/` |
-| 4 | 垂直切片：Windows 全量构建 | 未开始 | Windows 上核心调试流程可用（console 暂缺） |
+| 3 | 移植 Spec | 已完成 | `docs/porting/specs/` |
+| 4 | 垂直切片：Windows 全量构建 | 待复核 | Windows 上核心调试流程可用（console 走弹窗方案） |
 | 5 | 平台后端补齐 | 未开始 | inferior 控制台（弹窗）/ 进程信息 / 平台杂项可用 |
 | 6 | 系统性交叉验证 | 未开始 | `docs/porting/verification.md` 验证矩阵 |
 | 7 | 交付 | 未开始 | `docs/build-windows.md` + 打包 + 维护策略 |
@@ -275,6 +275,10 @@ MinGW64」为依据定案，符合「决策有可追溯依据」口径。置「�
 （:919/:1069），D5 的实现成本归零。置「待复核」，等待主人批准
 进入 Phase 4（编码闸口）。
 
+2026-10-20 主人批准（对话：「继续推进」），置「已完成」。
+
+2026-10-20 补记：Phase 4 依本 spec 实施。
+
 ---
 
 ## Phase 4 — 垂直切片：Windows 全量构建
@@ -306,7 +310,41 @@ MinGW64」为依据定案，符合「决策有可追溯依据」口径。置「�
 - 冒烟在 64 位 gdb 与 32 位 gdb 各跑一遍核心流程（载入、断点、
   单步、变量）。
 
-**执行记录**：
+**执行记录**：2026-10-20 开工并完成主体。
+
+- spec 全部落地：6 个上游文件改动 + 新增 `QProcessInfo_win.cpp`。
+- 编译扫障两轮：① 全项目约 238 个文件里仅
+  `SeerConsoleWidget.cpp` 失败（`fcntl`/`F_GETFD`/`fsync` MinGW
+  缺，按 spec 预案加守卫修复）；② 链接失败——
+  `QProcessInfo_win.cpp` 的 `Q_OS_WIN` 守卫位于任何 Qt include
+  之前导致整个文件编译为空翻译单元，加 `<QtCore/QtGlobal>` 修复
+  （宏陷阱已补记进 specs/processinfo.md）。
+- Windows 全量构建 0 error，产物 `.tmp/build-win64/seergdb.exe`
+  （Debug，约 130MB）；WSL2 回归构建 `[100%]`、0 error。
+- 冒烟（日志存 `.tmp/smoke/`）：
+  - x64（gdb 18.1 + `hellofibonacci` + `--break-function main`）：
+    断点命中（`*stopped,reason="breakpoint-hit"` 于
+    hellofibonacci.cpp:6）、停机后栈视图自动刷新
+    （`^done,stack=` ×3）、inferior 弹**可见**控制台（窗口标题=
+    exe 路径）、gdb 无黑窗、MI 流干净；
+  - x86（gdb 17.1 + `helloarray` 跑到结束）：`exited-normally`、
+    MI 流无程序输出污染、17.1 的 `fullname` 反斜杠差异实证。
+  - 观察：启动期若干 `^error "No registers."`（寄存器视图查询撞
+    上 inferior 运行态的竞态，与平台无关，Phase 6 复核）。
+- **剩余人工项（GUI 交互无法自动化）**：单步执行、变量视图、内存
+  视图的点验，以及界面整体观感——待主人点验后关账。置「待复核」。
+
+2026-10-20 主人人工点验：基本流程（开调试、设断点、观察 local）
+正常；发现**偶发崩溃**——第二次 File→Debug 会话中设置断点时
+seergdb 崩溃，重试不复现。事件日志定位：故障模块 Qt6Core.dll
+（6.11.2）+0x8045，异常代码 0xC0000602（fail-fast，即 Qt 的
+qFatal / Q_ASSERT 终止路径，非内存踩踏——有确定性的触发条件，
+可定位）。布防：seergdb 挂外层 gdb 的抓栈会话
+（`.tmp/smoke/crash-hunt.log`，崩溃自动留 backtrace + fatal 文本，
+主人手工复现即可）；脚本化循环暂缓（与人工会话互斥，教训：
+`taskkill /IM` 按镜像名杀伤过广，后续改按 PID）。新增风险 R8，
+Phase 4 维持「待复核」。验证体系的系统化方案（场景脚本 + 矩阵 +
+崩溃自动捕获）并入 Phase 6 计划。
 
 ---
 
@@ -422,6 +460,7 @@ MinGW64」为依据定案，符合「决策有可追溯依据」口径。置「�
 | R4 | WSL2 的 Qt（apt 6.4.x）与 Windows 的 Qt（MSYS2 6.11.x）版本差，代码要同时兼容两个版本 | 中 | open | 全程 |
 | R5 | WSL2 apt 源缺 `libqt6charts6-dev` / `libqt6svg6-dev`，Phase 0 被阻 | 中 | 已化解（包名问题：noble 用 `qt6-charts-dev` / `qt6-svg-dev`） | Phase 0 |
 | R6 | `tests/` 相当一部分程序本身不可移植，验证矩阵必须先行筛选 | 低 | open | Phase 6 |
+| R8 | 主人人工点验发现：第二次 File→Debug 会话中设置断点时 seergdb 偶发崩溃（事件日志：Qt6Core.dll +0x8045，异常 0xC0000602 fail-fast = Qt qFatal/Q_ASSERT 路径，非内存踩踏；复现一次后重试不崩） | 高 | open（调查中：外层 gdb 抓栈会话已布防） | Phase 4 |
 | R7 | `new-console` 在「MI 模式 + QProcess 无控制台启动 gdb」组合下的实际行为未经证实（弹窗时机、多余窗口、Ctrl-C 传递） | 中 | 已化解（Q1 实证见 D4；Ctrl-C 人工交互项留 Phase 5） | Phase 2 Q1 |
 
 ## 与最初八步设想的映射
