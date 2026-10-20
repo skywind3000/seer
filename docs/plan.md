@@ -59,8 +59,8 @@
 | 1 | 平台耦合审计 | 已完成 | `docs/porting/audit.md` |
 | 2 | 关键技术决策与 PoC | 已完成 | `docs/porting/decisions.md`（D4–D7）+ PoC 佐证 |
 | 3 | 移植 Spec | 已完成 | `docs/porting/specs/` |
-| 4 | 垂直切片：Windows 全量构建 | 待复核 | Windows 上核心调试流程可用（console 走弹窗方案） |
-| 5 | 平台后端补齐 | 未开始 | inferior 控制台（弹窗）/ 进程信息 / 平台杂项可用 |
+| 4 | 垂直切片：Windows 全量构建 | 已完成 | Windows 上核心调试流程可用（console 走弹窗方案） |
+| 5 | 平台后端补齐 | 进行中 | inferior 控制台（弹窗）/ 进程信息 / 平台杂项可用 |
 | 6 | 系统性交叉验证 | 未开始 | `docs/porting/verification.md` 验证矩阵 |
 | 7 | 交付 | 未开始 | `docs/build-windows.md` + 打包 + 维护策略 |
 
@@ -334,17 +334,20 @@ MinGW64」为依据定案，符合「决策有可追溯依据」口径。置「�
 - **剩余人工项（GUI 交互无法自动化）**：单步执行、变量视图、内存
   视图的点验，以及界面整体观感——待主人点验后关账。置「待复核」。
 
-2026-10-20 主人人工点验：基本流程（开调试、设断点、观察 local）
-正常；发现**偶发崩溃**——第二次 File→Debug 会话中设置断点时
-seergdb 崩溃，重试不复现。事件日志定位：故障模块 Qt6Core.dll
-（6.11.2）+0x8045，异常代码 0xC0000602（fail-fast，即 Qt 的
-qFatal / Q_ASSERT 终止路径，非内存踩踏——有确定性的触发条件，
-可定位）。布防：seergdb 挂外层 gdb 的抓栈会话
-（`.tmp/smoke/crash-hunt.log`，崩溃自动留 backtrace + fatal 文本，
-主人手工复现即可）；脚本化循环暂缓（与人工会话互斥，教训：
-`taskkill /IM` 按镜像名杀伤过广，后续改按 PID）。新增风险 R8，
-Phase 4 维持「待复核」。验证体系的系统化方案（场景脚本 + 矩阵 +
-崩溃自动捕获）并入 Phase 6 计划。
+2026-10-20 追记：主人复测**无法重现**崩溃（外层 gdb 抓栈会话在
+跑，未捕获）；基本点验通过（开调试、设断点、观察 local 正常）。
+QProcessInfo_win 直测通过（Phase 5 预备，日志
+`.tmp/poc-q3/`）：枚举 504 条，name/path/user 覆盖 503/325/332，
+自身进程四字段全对，System 类进程正确走方括号降级。崩溃捕获网
+补强：HKCU LocalDumps 实测无效（只认 HKLM），待主人管理员会话
+注册。Phase 4 维持「待复核」；单步 / 内存视图人工项并入
+Phase 6 矩阵。
+
+2026-10-20 关账：主人以管理员权限重启会话后完成崩溃捕获网部署
+（WER LocalDumps + DontShowUI + 外层 gdb 包装，端到端实测 fail-fast
+也能留 dump；配置与 msys 父进程坑记入 `AGENTS.local.md` §7 与
+`environment.md`）。点验结论：基本流程通过，崩溃转 R8 跟踪。
+全部出口条件按「可自动化项 + 基本人工点验」达成，置「已完成」。
 
 ---
 
@@ -377,7 +380,23 @@ Phase 4 维持「待复核」。验证体系的系统化方案（场景脚本 + 
 - WSL2 Linux 回归构建通过。
 - audit.md 全部条目状态为「已关闭」，否则记录原因并入风险登记。
 
-**执行记录**：
+**执行记录**：2026-10-20 开工。进展：
+
+- 任务 1（inferior 控制台接线）：Phase 4 已随 spec 落地并经冒烟实证
+  （弹窗 + MI 干净）；剩 console 交互人工项（stdin 回显 / ANSI /
+  Ctrl-C / 弹窗关闭行为）待主人点验。
+- 任务 2（QProcessInfo）：实现 + 直测通过（枚举 504 条、自身四字段
+  全对、System 类正确降级，`.tmp/poc-q3/`）；进程列表对话框人工
+  点验待做。
+- 任务 3（termios/signal 替换）：sendGdbInterrupt 映射已落地构建
+  通过；-exec-interrupt/mi-async 机制 PoC Q2 实证，菜单目验待做。
+- 任务 4（CMake 收尾）：gdb 默认值 / 警告门 / 资源均已随 Phase 4
+  完成。
+- 任务 5（audit 关账）：A1–A9 全部关闭（记录见 audit.md §7；
+  A4 的中断运行期验证与 R8 一并归入 Phase 6 矩阵）。
+- 待做：Linux 侧 console 运行期冒烟（WSL2 无显示，方案：apt 装
+  xvfb 后 CLI 冒烟验证 `-inferior-tty-set` 路径，代码层已由
+  「#else 原文 + 构建通过」保障）。
 
 ---
 
@@ -460,7 +479,7 @@ Phase 4 维持「待复核」。验证体系的系统化方案（场景脚本 + 
 | R4 | WSL2 的 Qt（apt 6.4.x）与 Windows 的 Qt（MSYS2 6.11.x）版本差，代码要同时兼容两个版本 | 中 | open | 全程 |
 | R5 | WSL2 apt 源缺 `libqt6charts6-dev` / `libqt6svg6-dev`，Phase 0 被阻 | 中 | 已化解（包名问题：noble 用 `qt6-charts-dev` / `qt6-svg-dev`） | Phase 0 |
 | R6 | `tests/` 相当一部分程序本身不可移植，验证矩阵必须先行筛选 | 低 | open | Phase 6 |
-| R8 | 主人人工点验发现：第二次 File→Debug 会话中设置断点时 seergdb 偶发崩溃（事件日志：Qt6Core.dll +0x8045，异常 0xC0000602 fail-fast = Qt qFatal/Q_ASSERT 路径，非内存踩踏；复现一次后重试不崩） | 高 | open（调查中：外层 gdb 抓栈会话已布防） | Phase 4 |
+| R8 | 主人人工点验发现：第二次 File→Debug 会话中设置断点时 seergdb 偶发崩溃（事件日志：Qt6Core.dll +0x8045，异常 0xC0000602 fail-fast = Qt qFatal/Q_ASSERT 路径，非内存踩踏；复现一次后重试不崩） | 高 | open（捕获网已上线：WER LocalDumps 对正常启动 100% 留 dump（含 fail-fast，实测）；bash 会话用外层 gdb 抓栈；深度分析届时装 cdb/WinDbg。配置与坑见 `AGENTS.local.md` §7） | Phase 4/6 |
 | R7 | `new-console` 在「MI 模式 + QProcess 无控制台启动 gdb」组合下的实际行为未经证实（弹窗时机、多余窗口、Ctrl-C 传递） | 中 | 已化解（Q1 实证见 D4；Ctrl-C 人工交互项留 Phase 5） | Phase 2 Q1 |
 
 ## 与最初八步设想的映射

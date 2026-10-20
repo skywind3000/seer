@@ -58,6 +58,11 @@ QTimer 自动退出，免去人工关窗）。构建与运行：
      人工读码才发现的。
    - 结论：凡模式以 `/` 开头，一律加 `MSYS_NO_PATHCONV=1` 前缀
      并用 `-e` 显式给出。
+3. **msys bash 的子进程不触发 WER**：bash 给子进程的 error mode 会
+   抑制 Windows 错误报告——验证崩溃捕获或复现崩溃行为时，必须用
+   干净父进程启动（如 PowerShell `Start-Process`），否则崩溃无
+   dump、无事件日志。另：`cmd /c "app & echo %ERRORLEVEL%"` 里的
+   `%ERRORLEVEL%` 是解析期展开的旧值，验证退出码不要用它。
 
 ## WSL2（Ubuntu-24.04）
 

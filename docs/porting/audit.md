@@ -132,3 +132,23 @@ Toolhelp32 后端），**`SeerGdbWidget` 有 4 类点**（tty 接线、kill
 只有两处，都留给 Phase 2 的 PoC：A2/A8 的 new-console 组合行为
 （R7）、A4 的中断方式等价性（R3 相关）。全部条目「Windows 候选
 方案」列非空，满足 Phase 1 出口条件，待主人 review。
+
+## 7. 关账记录（Phase 5，2026-10-20）
+
+A1–A9 全部关闭，依据如下（原始状态列保留为 Phase 1 快照，本节为
+权威关账记录）：
+
+| 条目 | 关账依据 |
+| --- | --- |
+| A1 | D1 分流 + 平台守卫落地；Windows 全量构建通过；Linux 侧 `#ifndef` 内为原文（构建 + 回归通过） |
+| A2 | D4：`-gdb-set new-console on`；Phase 4 冒烟实证（inferior 弹可见控制台、MI 流干净、gdb 无黑窗） |
+| A3 | D6：`QProcessInfo_win.cpp`（Toolhelp32）；直测通过：枚举 504 条，name/path/user 覆盖 503/325/332，自身 pid/名字/路径/用户名全对，System 类正确方括号降级 |
+| A4 | D5：中断映射（SIGINT→`-exec-interrupt`、SIGKILL→gdb `kill`）落地构建通过；mi-async + -exec-interrupt 机制由 PoC Q2 双 gdb 实证；运行期菜单点验归 Phase 6 矩阵 |
+| A5 | 四行悬空 include 已删；双平台构建通过 |
+| A6 | 5 处 `QDir::tempPath()` 替换；构建通过，Linux 默认环境路径不变 |
+| A7 | CMake 三处（警告门 / SEER_GDB_NAME / 新文件入列）；双平台构建通过 |
+| A8 | `CREATE_NO_WINDOW`；冒烟实证 gdb 全程无黑窗 |
+| A9 | 随 A1（守卫后 MinGW 可编译；控件 Windows 隐藏） |
+
+遗留：R8（偶发崩溃，与 audit 条目无对应——属运行期问题，捕获网
+已上线跟踪）。
