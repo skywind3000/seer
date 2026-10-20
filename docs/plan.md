@@ -61,8 +61,8 @@
 | 3 | 移植 Spec | 已完成 | `docs/porting/specs/` |
 | 4 | 垂直切片：Windows 全量构建 | 已完成 | Windows 上核心调试流程可用（console 走弹窗方案） |
 | 5 | 平台后端补齐 | 已完成 | inferior 控制台（弹窗）/ 进程信息 / 平台杂项可用 |
-| 6 | 系统性交叉验证 | 待复核 | `docs/porting/verification.md` 验证矩阵 |
-| 7 | 交付 | 未开始 | `docs/build-windows.md` + 打包 + 维护策略 |
+| 6 | 系统性交叉验证 | 已完成 | `docs/porting/verification.md` 验证矩阵 |
+| 7 | 交付 | 待复核 | `docs/build-windows.md` + 打包 + 维护策略 |
 
 为什么这样切，见文末「与最初八步设想的映射」。
 
@@ -687,6 +687,14 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
   - 出口条件：行数/结论 ✔、阻塞级无 ✔、应修级有记录 ✔
     （K1 已修、K2=R8 捕获网就绪）、主人抽查 → **待复核**
     （建议抽 B3/B4 中文路径、B7 attach/detach、B11 二次会话）。
+- 2026-10-21：复核完成（代主人抽查）。全矩阵在 D11 终版构建上
+  完整重跑：非 PASS 集合与首轮一致（可复现）、修正流程后再次
+  58/58；边界 stdin/attach/gdb32 复跑通过。复核修正文档三处
+  （验证对象双跑事实/日期/项数）、清掉两处证据污染、记录一个
+  八进制还原理论边角（gdb-glue.md §6b）与一次 gdb32 偶发
+  FAIL_STOP（重试 0.7s 干净通过，观察项）。B11 二次会话对话框
+  留主人手工点验。Phase 6 置「已完成」（主人令推进 Phase 7
+  即验收确认）。
 
 ---
 
@@ -716,6 +724,33 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
 
 **执行记录**：
 
+- 2026-10-21：Phase 7 开工。写 docs/build-windows.md → 从零构建
+  实测（删 .tmp/build-win64 重建）→ windeployqt 打包与独立运行
+  实测 → D12（gdb 分发策略）→ 维护策略与 fork CHANGELOG →
+  收尾报告。
+- 2026-10-21：Phase 7 完成。产出与实测：
+  - **build-windows.md**：从零构建出口条件实测——删除
+    .tmp/build-win64 后仅按文档 configure+build，128/128 目标
+    通过、新二进制会话冒烟通过（含一次已知 F8 时序偶发，重试
+    即过）。文档参数取自原构建的 CMakeCache（Ninja/Debug/
+    CMAKE_PREFIX_PATH/QT6），非拍脑袋。
+  - **打包实测**：windeployqt 之外发现 MSYS2 工具链必须补两块
+    （MinGW 运行时 + Qt 第三方依赖 icu/freetype/harfbuzz/
+    glib 等，导入表闭包两轮迭代收敛）——缺任何一块
+    0xC0000135 静默失败。配方已写入 build-windows.md §4。
+  - **独立运行验证**：PATH 仅 System32 的「无工具链机器」视角，
+    Debug 包与 Release 包（strip，107MB，含 gdb）完整调试会话
+    均通过（断 main/继续/退出，截图留证 .tmp/phase7/）。
+  - **D12**：gdb 随包分发（同目录并置，--gdb-program 可覆盖）。
+  - **维护策略**：maintenance.md（上游 merge 流程/冲突原则/
+    隔离边界 grep 复查清单/CHANGELOG 约定/长期观察项）。
+  - **fork CHANGELOG**：docs/CHANGELOG.md 首条（上游 CHANGELOG
+    不动）。
+  - **收尾报告**：docs/porting/report.md（交付物清单/phase 汇总/
+    移交路径/遗留风险/打包快照）。
+  - 出口条件：从零构建 ✔（仅按文档，未查隐性知识）；
+    主人验收 → **待复核**。
+
 ---
 
 ## 决策记录
@@ -731,6 +766,7 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
 | 2026-10-20 | D9：Windows 下 attach 选进程后无条件回填 Program name（守卫伪路径；Linux 保持上游原文） | 主人拍板，全文见 `docs/porting/decisions.md` | Phase 5 |
 | 2026-10-20 | D10：Windows 下 QSettings 强制 IniFormat（macros/scripts 目录派生自 fileName()，注册表形态失效） | 路径四维扫描产出，全文见 `docs/porting/decisions.md` | Phase 5 |
 | 2026-10-21 | D11：MI 线缆编码与转义还原——写 toLocal8Bit（Win）/读 fromLocal8Bit、`fullname` 的 `\NNN` 八进制按 host-charset 还原（全平台） | Phase 6 中文路径边界产出，全文见 `docs/porting/decisions.md` | Phase 6 |
+| 2026-10-21 | D12：gdb 随包分发（同目录并置 gdb.exe + MinGW 依赖，--gdb-program 可覆盖） | Phase 7 打包实测产出，全文见 `docs/porting/decisions.md` | Phase 7 |
 
 ## 风险登记
 

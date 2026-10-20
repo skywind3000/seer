@@ -276,3 +276,23 @@
 - 依据：`.tmp/phase6/` 边界场景 A/B 双行 + raw gdb python 复现
   脚本 + hex 级诊断日志（open-debug/monitor-debug，临时探针，
   已从代码移除）；`tests/hellopathnorm` 13/13 双平台。
+
+## D12 — gdb 随包分发
+
+- 日期：2026-10-21
+- 状态：已采纳（Phase 7 打包实测的产出）
+- 背景：Seer 的两个硬依赖（见 AGENTS.md 引 issue #94）之一就是
+  「带 MI 接口的 gdb」。分发选择：随包携带 gdb，或要求用户自备。
+- 决策：**随包分发**。打包目录内并置 `gdb.exe` 及其 MinGW 依赖
+  （expat/gmp/iconv/intl/lzma/mpfr/ncursesw/python/readline/
+  xxhash/zstd/zlib 一族，与 seergdb 同源同工具链），默认
+  `SEER_GDB_NAME="gdb"` 在同目录解析；用户可随时用
+  `--gdb-program` 覆盖指向自备版本。
+- 依据：实测（`.tmp/phase7/deploy-session.ps1`）——PATH 仅含
+  System32 的「无工具链机器」视角下，seergdb + 包内 gdb 的完整
+  调试会话（断 main/继续/退出）通过；gdb 与 Qt 运行时同属
+  MinGW-w64 生态，DLL 互相兼容无额外成本；Seer (GPL-3) 与
+  gdb (GPL) 许可兼容，随包分发无障碍。自备路径仍开放（运行时
+  参数覆盖），不排除未来用户偏好。
+- 影响：打包体积增加（gdb + 依赖约 60MB）；版本演进时 gdb 与
+  Seer 同包升级，避免「用户 gdb 版本差异」这一整类支持负担。
