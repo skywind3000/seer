@@ -61,7 +61,7 @@
 | 3 | 移植 Spec | 已完成 | `docs/porting/specs/` |
 | 4 | 垂直切片：Windows 全量构建 | 已完成 | Windows 上核心调试流程可用（console 走弹窗方案） |
 | 5 | 平台后端补齐 | 已完成 | inferior 控制台（弹窗）/ 进程信息 / 平台杂项可用 |
-| 6 | 系统性交叉验证 | 未开始 | `docs/porting/verification.md` 验证矩阵 |
+| 6 | 系统性交叉验证 | 待复核 | `docs/porting/verification.md` 验证矩阵 |
 | 7 | 交付 | 未开始 | `docs/build-windows.md` + 打包 + 维护策略 |
 
 为什么这样切，见文末「与最初八步设想的映射」。
@@ -655,6 +655,39 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
 
 **执行记录**：
 
+- 2026-10-20：Phase 6 开工。先做 tests/ 程序筛选分类，再批量构建
+  Windows 适用子集，复用 Phase 5 的自动化装备（Xvfb/MI harness/
+  截图验证）跑矩阵，边界场景逐项验证。
+- 2026-10-21：Phase 6 主体完成，产出
+  `docs/porting/verification.md`。摘要：
+  - **筛选**：93 条目 → 58 适用 + 32 Linux-only + 2 嵌入式 +
+    1 双侧排除（helloutl，Qt5 QRegExp）。构建 Windows 58/0/2、
+    Linux 54/0/6 全绿（跳过均有理由记录）。
+  - **核心矩阵**：58 程序 × 真实 GUI 会话（`seergdb --bf main -r`
+    启动 + 进程级停点检测 + F8 继续 + 退出判定 + 截图 OCR 抽查）
+    **58/58 PASS**。首轮 8 个非 PASS 全部溯源为程序自身行为
+    （长运行/stdin/事件循环/Go 符号语义），按正确流程重跑通过。
+  - **边界场景 12 项**（§4）：崩溃（SIGSEGV）、空格路径、中文
+    exe 路径、中文源码路径、长输出、Ctrl+I 打断、attach/detach
+    （detach 后 inferior 存活）、hellodebugbreak 8×SIGTRAP、
+    弹窗控制台 stdin 注入（原生 WriteConsoleInput）、32 位
+    gdb 17.1 交叉 3/3、同实例 Restart 多会话——除 B11 对话框
+    二次会话留人工抽查外全部 PASS。core 加载确认为平台已知差异。
+  - **D11（应修→已修）**：中文路径三重缺陷（写侧 UTF-8 vs gdb
+    ANSI、MI `\NNN` 八进制转义从不还原、转义字节 host-charset
+    误解码——Linux 同中招转义层）。三处配套修复 + hellopathnorm
+    扩至 13 项双平台全绿。ADR 见 decisions.md D11，规格
+    gdb-glue.md §6b。
+  - **Linux 对照**：Xvfb 会话 9 行（含中文路径两行、D11 后
+    PASS），其余程序构建 OK；hellostack 交互引用 Phase 5
+    v-verify 证据。
+  - 装备沉淀（`.tmp/phase6/`）：build-programs.sh 双平台批量构建、
+    session-functions.ps1 会话自动化、coninj.c 控制台注入器、
+    linux-verify.sh 对照 runner、矩阵 TSV 与截图证据。
+  - 出口条件：行数/结论 ✔、阻塞级无 ✔、应修级有记录 ✔
+    （K1 已修、K2=R8 捕获网就绪）、主人抽查 → **待复核**
+    （建议抽 B3/B4 中文路径、B7 attach/detach、B11 二次会话）。
+
 ---
 
 ## Phase 7 — 交付
@@ -697,6 +730,7 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
 | 2026-10-20 | D8：路径处理三层策略——gdb 命令正斜杠、KEY 折叠大小写、显示按 Windows 习惯；GdbMonitor 记录级 fullname 归一 | 主人拍板，全文见 `docs/porting/decisions.md` | Phase 5 |
 | 2026-10-20 | D9：Windows 下 attach 选进程后无条件回填 Program name（守卫伪路径；Linux 保持上游原文） | 主人拍板，全文见 `docs/porting/decisions.md` | Phase 5 |
 | 2026-10-20 | D10：Windows 下 QSettings 强制 IniFormat（macros/scripts 目录派生自 fileName()，注册表形态失效） | 路径四维扫描产出，全文见 `docs/porting/decisions.md` | Phase 5 |
+| 2026-10-21 | D11：MI 线缆编码与转义还原——写 toLocal8Bit（Win）/读 fromLocal8Bit、`fullname` 的 `\NNN` 八进制按 host-charset 还原（全平台） | Phase 6 中文路径边界产出，全文见 `docs/porting/decisions.md` | Phase 6 |
 
 ## 风险登记
 
@@ -707,7 +741,7 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
 | R3 | 双 gdb（x64 18.1 / x86 17.1）的 mi 输出细节、地址宽度、寄存器集合差异 | 中 | 已化解（Q2 实证全流程通过，差异清单见 D5） | Phase 2 Q2 |
 | R4 | WSL2 的 Qt（apt 6.4.x）与 Windows 的 Qt（MSYS2 6.11.x）版本差，代码要同时兼容两个版本 | 中 | open | 全程 |
 | R5 | WSL2 apt 源缺 `libqt6charts6-dev` / `libqt6svg6-dev`，Phase 0 被阻 | 中 | 已化解（包名问题：noble 用 `qt6-charts-dev` / `qt6-svg-dev`） | Phase 0 |
-| R6 | `tests/` 相当一部分程序本身不可移植，验证矩阵必须先行筛选 | 低 | open | Phase 6 |
+| R6 | `tests/` 相当一部分程序本身不可移植，验证矩阵必须先行筛选 | 低 | 已化解（Phase 6：58 适用 / 32 Linux-only / 2 嵌入式 / 1 双侧排除，理由与跳过全记录于 verification.md §1） | Phase 6 |
 | R8 | 主人人工点验发现：第二次 File→Debug 会话中设置断点时 seergdb 偶发崩溃（事件日志：Qt6Core.dll +0x8045，异常 0xC0000602 fail-fast = Qt qFatal/Q_ASSERT 路径，非内存踩踏；复现一次后重试不崩） | 高 | open（三层捕获网已上线并全部实测：①WER LocalDumps 对正常启动 100% 留 dump（含 fail-fast）；②cdb 可从 dump 出完整调用栈（系统 DLL 帧带符号）；③**fatal 栈日志**——新增 `src/SeerStackTrace.cpp`，qFatal/Q_ASSERT/std::terminate 时自动写 `%TEMP%\seer-fatal-<pid>.log`（消息+位置+调用栈+addr2line 地址），addr2line 离线解析已实测精确到函数:文件:行号。配置见 `AGENTS.local.md` §7） | Phase 4/6 |
 | R7 | `new-console` 在「MI 模式 + QProcess 无控制台启动 gdb」组合下的实际行为未经证实（弹窗时机、多余窗口、Ctrl-C 传递） | 中 | 已化解（Q1 实证见 D4；Ctrl-C 人工交互项留 Phase 5） | Phase 2 Q1 |
 

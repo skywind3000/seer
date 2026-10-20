@@ -163,6 +163,25 @@ setter）、printpoint 的 `dprintf-channel` 输出文件
 程序的参数，非 gdb 路径）与 pre/post gdb 命令（用户原始 gdb 脚
 本，按原样执行）。
 
+**§6b 线缆编码与 MI 转义（依 D11，2026-10-21 补记）**：上面的
+三层只管**字符串形态**；非 ASCII 路径还差**字节编码**一层。
+实测（raw gdb + python 双向喂字节）：Windows gdb 在本机 ANSI 代
+码页下解释 stdin——命令必须按 `toLocal8Bit()`（zh-CN=GBK）写
+入，UTF-8 字节的中文路径直接 `No such file`。输出侧，gdb 把
+`fullname` 等字段的非 ASCII 按 **host charset** 编成 `\NNN` 八
+进制转义（线上 ASCII）；Seer 给 gdb 的 `LANG=C` 环境使 Windows
+host charset=ANSI、Linux=UTF-8。据此：
+
+- 写侧（`handleGdbCommand`）：`Q_OS_WIN` → `toLocal8Bit()`，
+  其余平台维持上游 `toUtf8()`。
+- 读侧（`GdbMonitor` 两处 `QString(buf)`）：Windows →
+  `fromLocal8Bit`，其余 → `fromUtf8`。
+- 记录级 `fullname=` 重写块：**全平台**先解 `\NNN` 八进制为字
+  节，再按读侧同规则解码（ASCII 快路径直通）；Windows 的
+  `\\`→`/` 在解八进制之前做（顺序保证 `\\` 后跟数字不会被误
+  当转义）。八进制还原是 MI 规范行为，Linux 中文路径同样需要
+  （Linux 对照行复现过同一缺陷）。
+
 ## 验证
 
 - Linux 无回归：§1 `#else` 原文、§2 纯删除、§3 默认路径不变——

@@ -859,7 +859,15 @@ void SeerGdbWidget::handleGdbCommand (const QString& command, bool ignoreErrors)
 
     QString str = command + "\n";    // Ensure there's a trailing RETURN.
 
+#if defined(Q_OS_WIN)
+    // gdb on Windows interprets stdin bytes in the ANSI code page of the
+    // console locale: non-ASCII program/source paths only resolve in that
+    // encoding (UTF-8 bytes make -file-exec-and-symbols fail with
+    // 'No such file'). On other platforms the wire is UTF-8, as upstream.
+    QByteArray bytes = str.toLocal8Bit();
+#else
     QByteArray bytes = str.toUtf8(); // 8-bit Unicode Transformation Format
+#endif
 
 #if SEER_GDB_LOGOUT == 1
     // Broadcast this log. For debugging

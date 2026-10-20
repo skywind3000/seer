@@ -232,3 +232,47 @@
 - 影响：Windows 上此前写入注册表的测试期配置不再被读取（一次
   性回到默认值）；与 D8/D9 一起构成路径处理决策族。
 - 依据：`--xxx-debug` 无头实测 SETTINGS 路径。
+
+## D11 — MI 线缆编码与转义还原（中文路径三层修复）
+
+- 日期：2026-10-21
+- 状态：已采纳（Phase 6 边界场景「非 ASCII 路径」的产出）
+- 背景：中文路径（`中文目录/你好世界.exe`、DWARF comp_dir 为
+  中文）在 Windows 上三级失败，且第三级连 Linux 也中招：
+  1. **写侧**：`SeerGdbWidget::handleGdbCommand` 把 MI 命令按
+     UTF-8 写入 gdb stdin，而 Windows gdb 在本机 ANSI 代码页
+     （zh-CN=GBK）下解释 stdin——UTF-8 字节的中文路径使
+     `-file-exec-and-symbols` 报 `No such file or directory`
+     （raw gdb + python 喂 GBK 字节可正常加载，UTF-8 不行，
+     双向实证）。
+  2. **读侧**：gdb 的 MI 输出（如 `fullname`）里的非 ASCII 以
+     `\NNN` 八进制转义出现——线上是纯 ASCII，但 Seer 的解析器
+     从不还原 MI 转义，拼出的「文件名」是带 `\344\270\255` 字面
+     文本的字符串，编辑器打不开源码并弹
+     「Can't find source file」模态框。此为**跨平台缺陷**：
+     Linux 上中文源码路径同样失败（Linux 对照行复现）。
+  3. **转义字节编码**：gdb 按**host charset** 决定转义字节的编
+     码。Seer 给 gdb 的环境是 `LANG=C`（上游为了 MI 消息不被翻
+     译）——此时 Windows host charset=ANSI(GBK)，Linux
+     host charset=UTF-8。用 python 抓 raw gdb 字节双向实证：
+     Windows 发 `\326\320\316\304...`（GBK 八进制）、Linux 发
+     `\344\270\255\346\226\207...`（UTF-8 八进制）。
+- 决策（三处配套，全部最小 diff）：
+  1. 写侧 `Q_OS_WIN` 下 `str.toLocal8Bit()`，其余平台维持上游
+     `toUtf8()`（Linux UTF-8 locale 下两者字节一致，上游行为零
+     变化）。
+  2. 读侧 `GdbMonitor` 两处 `QString(buf)` 改为 Windows
+     `fromLocal8Bit` / 其余 `fromUtf8`——与写侧同一规则。
+  3. `GdbMonitor` 的记录级 `fullname="..."` 重写块（D8 引入）扩
+     展为**全平台**：先（仅 Windows）把 `\` 对折成 `/`（D8 原
+     逻辑），再把 `\NNN` 八进制还原成字节，最后按与读侧相同的
+     规则解码（Windows=GBK/ANSI，其余=UTF-8）成真实字符。
+     ASCII 快路径（字段不含 `\`）零开销直通。
+- 影响：中文（及一切非 ASCII）路径下的程序加载、断点、源码显示
+  在双平台闭环；ASCII 路径字节完全不变（58 程序矩阵重跑验证）。
+  hellopathnorm 回归测试从 12 项扩到 13 项（新增八进制转义用例，
+  平台条件化：Windows 用 GBK 八进制、Linux 用 UTF-8 八进制，
+  期望两侧同为真实中文）。
+- 依据：`.tmp/phase6/` 边界场景 A/B 双行 + raw gdb python 复现
+  脚本 + hex 级诊断日志（open-debug/monitor-debug，临时探针，
+  已从代码移除）；`tests/hellopathnorm` 13/13 双平台。
