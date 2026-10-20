@@ -3,13 +3,17 @@
 本文档是 Phase 6 的核心产出：`tests/` 程序筛选结论、双平台验证矩阵、
 边界场景记录、已知问题分级清单。
 
-- 执行日期：2026-10-20
+- 执行日期：2026-10-20 / 21（矩阵与边界跨两天；2026-10-21 在
+  D11 终版构建上整体复跑一次矩阵做可复现性复核）
 - Windows：MinGW-w64 GCC 16.2（x64）/ Qt 6.11 / gdb 18.1（x64），
   另以 gdb 17.1（x86）+ 32 位程序做交叉抽查
 - Linux 对照：WSL2 Ubuntu-24.04，g++ 13.3 / Qt 6.4.2 / gdb（apt），
   GUI 场景经 Xvfb 自动化
-- 验证对象：`.tmp/build-win64/seergdb.exe` 与 `.tmp/build-wsl/seergdb`
-  （Phase 5 收口时的构建，含 D8/D9/D10 全部修复）
+- 验证对象：`.tmp/build-win64/seergdb.exe` 与 `.tmp/build-wsl/seergdb`。
+  矩阵首跑于 D8/D9/D10 构建之上；D11 落地（中文路径修复）后，
+  边界/回归即刻重验，并于 2026-10-21 在 D11 终版构建上**完整复跑
+  58 程序矩阵**：首轮 8 个非 PASS 与首跑同集合同因（可复现），
+  修正流程重跑后再次 58/58。
 
 ## 1. tests/ 程序筛选
 
@@ -90,7 +94,7 @@ A 类程序及各自覆盖的功能点：
 | hellomatrix | 大数组 | OK | OK |
 | helloonefile | pthread | OK | OK |
 | helloparallelstacks | 并行栈（parallel-stacks.py） | OK | skip |
-| hellopathnorm | **路径归一化回归测试**（Phase 5 产出，12 项自检） | OK | OK |
+| hellopathnorm | **路径归一化回归测试**（Phase 5 产出，13 项自检，Phase 6 扩入八进制转义用例） | OK | OK |
 | hellopoem | 文本输出 | OK | OK |
 | hellopp | pretty-printer（PersonStruct_pp.py） | OK | OK |
 | helloprettyprint | pretty-printer 开关场景 | OK | OK |
@@ -202,9 +206,10 @@ console 相关功能点在 Windows 下按 D1 验证**弹窗行为**
 （断在 main）∧（normal 流程）inferior 正常退出 ∧ seergdb 存活 ∧
 无残留进程。OCR 抽查 58 张停点截图全部有 GUI 调试态证据（标题栏
 原生路径 / "Program reached breakpoint" / 栈帧面板 / 源码浏览
-器）；8 个非 PASS 的首轮结果全部溯源为程序自身行为（长运行、
+器）。矩阵跑了**两轮**（D11 前首跑 + D11 终版复跑）：两轮的
+非 PASS 集合完全一致（8 个，全部溯源为程序自身行为：长运行、
 stdin 阻塞、事件循环、Go 无 `main` 符号——见各行 flow 列），按
-正确流程分类重跑后全部 PASS。截图与逐行 TSV 在
+正确流程分类重跑后两轮均为 58/58。截图与逐行 TSV 在
 `.tmp/phase6/matrix-win.tsv` 与 `.tmp/phase6/shots/`。
 
 | 程序 | 流程 | Windows | Linux 对照 |
