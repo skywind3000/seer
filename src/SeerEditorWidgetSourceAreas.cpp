@@ -621,7 +621,7 @@ void SeerEditorWidgetSourceArea::open (const QString& fullname, const QString& f
     }
 
     // Save the filename.
-    _fullname           = fullname;
+    _fullname           = Seer::normalizeSourcePath(fullname);
     _file               = file;
     _alternateDirectory = alternateDirectory;
 
@@ -1948,7 +1948,7 @@ void SeerEditorWidgetSourceArea::handleText (const QString& text) {
             return;
         }
 
-        QString fullname_text = Seer::parseFirst(frame_text, "fullname=", '"', '"', false);
+        QString fullname_text = Seer::normalizeSourcePath(Seer::parseFirst(frame_text, "fullname=", '"', '"', false));
         QString file_text     = Seer::parseFirst(frame_text, "file=",     '"', '"', false);
         QString line_text     = Seer::parseFirst(frame_text, "line=",     '"', '"', false);
 

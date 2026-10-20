@@ -140,7 +140,7 @@ void SeerEditorManagerWidget::dumpEntries () const {
 
 bool SeerEditorManagerWidget::hasEntry (const QString& fullname) const {
 
-    if (_entries.find(fullname) != _entries.end()) {
+    if (_entries.find(Seer::normalizeSourcePath(fullname)) != _entries.end()) {
         return true;
     }
 
@@ -151,21 +151,23 @@ SeerEditorManagerEntries::iterator SeerEditorManagerWidget::addEntry (const QStr
 
     //qDebug() << "Add entry:" << fullname << file;
 
+    const QString normalized = Seer::normalizeSourcePath(fullname);
+
     SeerEditorManagerEntry entry;
 
-    entry.fullname = fullname;
+    entry.fullname = normalized;
     entry.file     = file;
     entry.widget   = 0;
 
-    return _entries.insert(fullname, entry);
+    return _entries.insert(normalized, entry);
 }
 
 SeerEditorManagerEntries::iterator SeerEditorManagerWidget::findEntry (const QString& fullname) {
-    return _entries.find(fullname);
+    return _entries.find(Seer::normalizeSourcePath(fullname));
 }
 
 SeerEditorManagerEntries::const_iterator SeerEditorManagerWidget::findEntry (const QString& fullname) const {
-    return _entries.find(fullname);
+    return _entries.find(Seer::normalizeSourcePath(fullname));
 }
 
 SeerEditorManagerEntries::iterator SeerEditorManagerWidget::beginEntry () {

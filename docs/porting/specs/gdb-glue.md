@@ -101,11 +101,32 @@ MinGW CRT 没有 `SIGKILL` / `SIGUSR1` / `SIGUSR2` 宏（A4 实编译
 
 SIGINT / SIGKILL 在 Windows 有 §1 的映射，菜单保留。
 
+## §6 源文件路径分隔符归一化（2026-10-20 实施补记）
+
+实测（裸 MI harness，hellofibonacci 双位宽）：gdb 17.1 的
+`fullname` 字段用反斜杠（`E:\Github\...`）而符号表 `file` 字段用
+正斜杠（`E:/Github/...`）；gdb 18.1 两者一致用正斜杠。Seer 以
+fullname 字符串做编辑器 tab 键控与断点命令拼接，17.1 下同一文件
+出现两种拼写——双 tab + `-break-insert -f --source "E:\..."` 的
+引号转义又被 gdb 吃掉反斜杠导致断点失败。
+
+方案：`Seer::normalizeSourcePath()`（`SeerUtl`，`Q_OS_WIN` 守卫，
+反斜杠→正斜杠），应用点：
+
+- `SeerEditorManagerWidget`：`hasEntry` / `addEntry` /
+  `findEntry`（键与 `entry.fullname` 均归一）；
+- `SeerEditorWidgetSourceArea`：`open()` 的 `_fullname` 与
+  `handleText()` 解析出的 `fullname_text`（两处拼写归一后，
+  `fullname_text != fullname()` 的重开判断保持稳定）。
+
+归一后断点命令用正斜杠，与符号表一致，17.1/18.1 均接受；Linux
+为 no-op。
+
 ## 验证
 
 - Linux 无回归：§1 `#else` 原文、§2 纯删除、§3 默认路径不变——
   WSL2 重构 + 冒烟（中断菜单的 kill 路径、断点保存/恢复走
-  /tmp 的行为）。
+  /tmp 的行为）；§6 为 no-op，双平台重构通过。
 - Windows：§1 用 t-flow 场景复测（`-exec-interrupt` 打断忙循环、
   gdb `kill` 终止）；§4 调试全程无 gdb 黑窗；§5 菜单目视确认
-  （Phase 5）。
+  （Phase 5）；§6 用 17.1 会话复测单 tab + 按源码行建断点。

@@ -415,6 +415,87 @@ Phase 6 矩阵。
   addr2line 解析出 `capture`/`writeFatalLog`/`messageHandler`
   的函数:文件:行号。
 
+2026-10-20 追记（换机）：主人更换开发机，环境按 `AGENTS.local.md`
+重建并全部实测通过：pacman 补装 Qt6 三件套（6.11.2，与旧机同版；
+moc/uic 实际在 `share/qt6/bin`，文档已更正）；WSL2 补装
+`qt6-{base,charts,svg}-dev`（6.4.2）与 xvfb（Linux console 冒烟的
+前置）；Windows 全量构建 0 error（`[128/128]`，offscreen 启动正常）、
+WSL2 回归构建 `[100%]` 双通过；崩溃捕获网三层在新机器重新部署并
+端到端实测（空指针崩溃 → WER dump → cdb `.ecxr;k` 出栈 → addr2line
+解析回 `crash.c:3`，cdb 调用的三个坑与部署细节记入
+`AGENTS.local.md` §7）。环境就绪，Phase 5 剩余项可继续。
+
+2026-10-20 追记（Linux console 冒烟）：「待做」清单最后一项完成。
+WSL2 无显示环境下用 Xvfb + xdotool + tesseract OCR 实现 CLI 驱动的
+运行期冒烟（佐证存 `.tmp/smoke-linux/`：5 张截图 + 脚本 + console
+stdout 日志），验证点全部通过：
+
+- `-inferior-tty-set` 接线（硬证据：inferior 的 fd 0/1/2 →
+  `/dev/pts/N`，master 端在 seergdb）；
+- PTY 输出路径：程序提示语渲染进 console（OCR + stdout 日志双证）；
+- PTY 输入路径：stdin 输入框键入 "Linwei"，inferior 应答
+  "Thanks Linwei!" 并正常退出（PTY 回显 + 应答都留在日志里）；
+- ANSI 16 色真实渲染（console 区域颜色统计：红/绿/黄/蓝/品红/青
+  像素俱在，QAnsiTextEdit 工作正常）；
+- MI 流与 console 无混流（console 只有程序输出与一行 gdb 的
+  controlling-terminal 警告——WSL 下 TIOCSCTTY 受限所致，上游行为）。
+
+排障中确认两处**环境坑**（详记 `AGENTS.local.md` §5）：WSLg 给进程
+注入 `WAYLAND_DISPLAY`，Qt6 平台选择优先 Wayland，GUI 会绕过 Xvfb
+弹到 Windows 桌面，自动化必须 `QT_QPA_PLATFORM=xcb`；Messages 页签
+的 `raisetabmode` 默认会在程序启动时抢焦点，冒烟需预写 QSettings。
+至此 Phase 5 出口条件仅剩主人人工点验项（console 交互观感 / 进程
+列表对话框 / 中断菜单）。
+
+2026-10-20 追记（人工点验第一批反馈的查证）：主人按 A–E 清单实测，
+D（GUI 型不弹窗）、E（Interrupt 按钮）通过；A/B/C 的疑点经 Linux
+Xvfb 对照 + 裸 gdb MI harness 查证定性，均非移植缺陷：
+
+- **退出事件两平台逐字一致**：`*stopped,reason="exited",exit-code="01"`
+  + `=thread-group-exited`（18.1 与 15.1 输出相同；mi-async 下退出后
+  `-thread-info` 均返回 `^done,threads=[]`）。「程序退出后 Thread
+  视图显示 Stopped」属上游代码路径上的显示细节——Windows 侧 MinGW
+  程序自带 4 个运行时线程使退出级联更长，Linux 对照表现为该行直接
+  消失；不影响功能（程序确实退出、记录正确），列入 Phase 6 已知
+  差异观察项。
+- **`--run` 不停机时源码区不自动打开 = 上游设计**（源码区跟随停机
+  帧渲染）。Linux `--start` 实测：编辑器自动打开 helloname.cpp 并
+  停在 main（佐证 `.tmp/smoke-linux/shotVS1.png`）。
+- **弹窗随程序退出立即关闭是 D1 弹窗方案的固有行为**（B 项"一闪
+  而过"非缺陷；Linux 版输出留在 GUI 终端里可回看，是两种 console
+  形态的已知取舍，decisions.md D1 已涵盖）。另编了结尾 getchar 的
+  `helloansicodes-pause.exe` 供复测观感。
+- **Ctrl-C 打断阻塞 stdin 是平台共有语义**：Linux gdb+PTY 实测
+  （`cctrlc.sh`）——程序停于 `__GI___libc_read`，continue 后 cin
+  语义性失败（Windows 为 ReadConsole abort → 空名 "Thanks !"；
+  Linux 为 EINTR → cin 可继续读），"Thanks!" + continue 后退出
+  两平台同构。
+佐证：`.tmp/smoke-linux/{v-verify.sh,cctrlc.sh,shotVR1/2,shotVS1}`。
+
+2026-10-20 追记（第一批点验发现两个真缺口，已修复）：主人在 x86
+（gdb 17.1）会话与 B 复测中复现两个移植缺口——**非换机回归**（两机
+同一 commit；第一台机器的 x86 冒烟只到 CLI 级，未做过 GUI 断点交互，
+Phase 4 记录的「17.1 fullname 反斜杠差异实证」正是未拆的地雷）：
+
+- **G：同一源文件双 tab + 按源码行建断点失败**。根因（裸 MI
+  harness 实证）：gdb 17.1 `fullname` 字段用反斜杠、符号表 `file`
+  字段用正斜杠（18.1 一致为正斜杠）——Seer 以 fullname 做编辑器
+  键控与断点命令拼接，双拼写→双 tab；`--source "E:\..."` 引号
+  转义被 gdb 吃掉反斜杠→"No source file named E:Github..."。
+  修复：新增 `Seer::normalizeSourcePath()`（SeerUtl，
+  `Q_OS_WIN` 守卫），应用于编辑器 entries 键控与 sourceArea 的
+  `open()`/`handleText`（实施细节见 specs/gdb-glue.md §6）。
+  Windows `[58/58]`、WSL2 `[100%]` 双构建 0 error。待主人复测。
+- **B：弹窗 console 不渲染 ANSI**。根因：conhost 默认不开 VT
+  处理，转义序列按字面打印（Linux 版是 Seer 自绘终端，不受影响；
+  属 D1 弹窗方案此前未暴露的缺口）。本机已设
+  `HKCU\Console\VirtualTerminalLevel=1`（AGENTS.local.md §8）供
+  复测；程序化启用列为 Phase 5/6 候选任务。
+- A-1 补充确认：主人复验退出 5 秒后红色 "Stopped" 行**持久残留**
+  （Messages 正确记录 "Program exited normally" / "Program
+  terminated"）——纯显示残留，上游代码路径，列入 Phase 6 已知
+  差异清单，不阻塞。
+
 ---
 
 ## Phase 6 — 系统性交叉验证
