@@ -57,8 +57,8 @@
 | --- | --- | --- | --- |
 | 0 | 环境与基线 | 已完成 | 双平台工具链就绪，上游 Linux 版构建通过 |
 | 1 | 平台耦合审计 | 已完成 | `docs/porting/audit.md` |
-| 2 | 关键技术决策与 PoC | 待复核 | `docs/porting/decisions.md`（D4–D7）+ PoC 佐证 |
-| 3 | 移植 Spec | 未开始 | `docs/porting/specs/` |
+| 2 | 关键技术决策与 PoC | 已完成 | `docs/porting/decisions.md`（D4–D7）+ PoC 佐证 |
+| 3 | 移植 Spec | 待复核 | `docs/porting/specs/` |
 | 4 | 垂直切片：Windows 全量构建 | 未开始 | Windows 上核心调试流程可用（console 暂缺） |
 | 5 | 平台后端补齐 | 未开始 | inferior 控制台（弹窗）/ 进程信息 / 平台杂项可用 |
 | 6 | 系统性交叉验证 | 未开始 | `docs/porting/verification.md` 验证矩阵 |
@@ -221,6 +221,13 @@ Q3 Toolhelp32 枚举达标（D6）；Q4 工具链定案 MinGW64（D7）。风险
 R3、R7 已化解。成功标准与佐证存 `evidence/poc-*`。仅剩
 「主人 review」，置「待复核」。
 
+2026-10-20 复核通过（主人委托 agent 复核）。对证：D4–D7 与
+evidence/ 佐证逐条核实（log1 污染 21 行 / log3 零污染且
+`-gdb-set new-console` 返回 `^done`、双 gdb SUMMARY 全过
+errors=0、mi-async 双版本接受、Q3 计数与自证全对）。如实说明一项：
+Q4 未另立独立 PoC，以「Phase 0 冒烟 + 本阶段全部 PoC 均运行于
+MinGW64」为依据定案，符合「决策有可追溯依据」口径。置「已完成」。
+
 ---
 
 ## Phase 3 — 移植 Spec
@@ -258,7 +265,15 @@ R3、R7 已化解。成功标准与佐证存 `evidence/poc-*`。仅剩
   小而集中；能用新增文件承载的平台代码不改上游文件。
 - 主人批准后才能进入 Phase 4（这是唯一的编码闸口）。
 
-**执行记录**：
+**执行记录**：2026-10-20 开工并完成。产出 `specs/` 四份：overview
+（总则、改动全景约 60 行 / 6 个上游文件 + 1 个新文件、CMake 规格、
+追溯表、验证总纲）、console（A1/A2/A9）、processinfo（A3 +
+`QProcessInfo_win.cpp`）、gdb-glue（A4/A5/A6/A8 + 缺失信号宏
+占位）。自查：追溯表覆盖 A1–A9 无遗漏；diff 最小化核对通过
+（平台新代码只在 `QProcessInfo_win.cpp`，全部 `#else` 分支为
+原文）；关键发现：`mi-async` 上游已在 run/attach 路径发送
+（:919/:1069），D5 的实现成本归零。置「待复核」，等待主人批准
+进入 Phase 4（编码闸口）。
 
 ---
 
