@@ -549,3 +549,51 @@
   docs/CHANGELOG.md 记一条。
 - 依据：主人 2026-10-21 指示（「现在软件进入到了第二阶段，长期
   维护，帮我修改项目 README，头部加上本项目的说明」）。
+
+## D21 — Windows exe 内嵌应用图标（icon + 显式 manifest）
+
+- 日期：2026-10-21
+- 状态：已采纳（主人决策；随 v2.8.1-win3 发布）
+- 背景：v2.8.1-win2 发布后主人发现 Windows 版 seergdb 没有图标。
+  Windows 的图标机制是 exe 内嵌 RT_ICON 资源（Explorer/任务栏/
+  标题栏/Alt-Tab/快捷方式都取它；窗口未设 WM_SETICON 时系统自动
+  用 exe 的第一个图标），而本 fork 的 exe 的 .rsrc 只有链接器
+  自动补的默认 manifest，没有图标。上游代码从不调 setWindowIcon
+  ——Linux 的图标来自桌面集成（hicolor png + .desktop 文件 +
+  WM_CLASS 匹配），二进制本身不含图标，ELF 也没有内嵌机制。
+- 决策：Windows 侧用 windres 把资源编进 exe，四个新文件/改动：
+  1. `src/resources/icons/seergdb.ico`——用上游自己的美术
+     （512px master，Pillow LANCZOS）生成，16/24/32/48/64/128/256
+     七档、PNG 压缩 32bpp；沿用上游 logo，Windows 与 Linux 桌面
+     观感一致；
+  2. `src/seergdb.rc`——`1 ICON`（ID 1 = 缺省图标）与 `1 24`
+     （RT_MANIFEST，ID 1 = exe manifest）两条；
+  3. `src/seergdb.exe.manifest`——显式 manifest（asInvoker +
+     supportedOS 全列表）。原因：exe 一旦自带 .rsrc，MinGW ld 不
+     再自动补默认 manifest，显式内嵌等价内容保持运行时行为不变，
+     且 manifest 从「链接器隐式行为」变成仓库可见的文件；
+  4. `src/CMakeLists.txt` 在既有 WIN32 守卫块之后新增 WIN32 块：
+     `enable_language(RC)` + 把 `seergdb.rc` 追加进源文件；
+  5. `.gitignore` 加定向例外（`!src/resources/icons/` →
+     `src/resources/icons/*` → `!src/resources/icons/seergdb.ico`）：
+     上游首行的 `icons/` 规则挡掉了 `seergdb.ico`（上游 hicolor
+     png 是规则生效前已跟踪才幸存）。不走 `git add -f`——那会留
+     下「被忽略却已跟踪」的混淆状态，文件一旦删除就加不回来。
+- 零代码改动：不碰任何 .cpp；.rc/.ico/.manifest 仅在 WIN32 下
+  引用，Linux 构建路径完全不变，D2 最小 diff 不破。不做
+  setWindowIcon（系统默认取 exe 首图标已覆盖窗口/任务栏）；
+  不做 VERSIONINFO（版本号需随每次发布手动同步，与 D18 的
+  tag 驱动发布相悖，弊大于利，将来真需要再加）。
+- 验证（2026-10-21 本机实测）：Windows 全量构建通过（windres 编
+  译 `seergdb.rc.obj`，`CMAKE_INCLUDE_CURRENT_DIR` 使相对路径
+  一次解析成功）；PE 资源目录逐层解析：RT_GROUP_ICON×1（ID 1）
+  + RT_ICON×7（大小与 ico 逐条吻合）+ RT_MANIFEST×1（内容为本
+  仓库那份，无 ld 默认混入、无重复）；ExtractAssociatedIcon 提出
+  的 32px 与 ico 内嵌条目逐像素一致（RGB 通道与上游 32px png 亦
+  一致，alpha 因缩放来源略异）；exe 冒烟启动正常；WSL2 Linux
+  增量构建绿色。
+- 影响：构成 v2.8.1-win3 的发布内容；CI（windows-release.yml）
+  无需改——windres 属 `mingw-w64-x86_64-toolchain` 包，Actions
+  的 MSYS2 同样有，且同为 Ninja + MinGW 路线（本地已同法验证）。
+- 依据：主人 2026-10-21 指示（「我才反应过来，windows 版本的
+  seer 程序没图标啊」→「修吧」「排版，做 v2.8.1-win3」）。

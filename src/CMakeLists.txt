@@ -321,6 +321,14 @@ if(WIN32)
     add_compile_options(-fno-omit-frame-pointer)
 endif()
 
+# Windows: embed the application icon through a windres resource script (D21).
+# The artwork is upstream's own (resources/icons/hicolor), so the exe shows the
+# same logo the Linux desktop icons use. Linux is not affected.
+if(WIN32)
+    enable_language(RC)
+    list(APPEND SOURCE_FILES seergdb.rc)
+endif()
+
 add_definitions(-DQT_DISABLE_DEPRECATED_UP_TO=0x060300)
 
 add_executable(${PROJECT_NAME} ${SYSTEM_TYPE} ${SOURCE_FILES})

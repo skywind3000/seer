@@ -1,4 +1,9 @@
 icons/
+# Except the embedded Windows exe icon (D21): upstream's `icons/` rule
+# hides everything under src/resources/icons/, tracked or not.
+!src/resources/icons/
+src/resources/icons/*
+!src/resources/icons/seergdb.ico
 
 # Ignore .nfs files that occasionally show up
 .nfs*

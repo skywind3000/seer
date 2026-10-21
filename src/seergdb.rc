@@ -1,0 +1,12 @@
+// Windows resource script for seergdb (D21).
+// Only compiled on WIN32 -- see the wiring in CMakeLists.txt. Linux has
+// no embedded-exe-icon mechanism and is not affected.
+//
+// Icon ID 1 makes it the executable's first icon, so Windows uses it as
+// the default window/taskbar/Explorer icon without any code involvement.
+
+1 ICON "resources/icons/seergdb.ico"
+
+// Embedding our own .rsrc suppresses the default manifest MinGW ld adds to
+// resource-less exes, so ship the same manifest explicitly (seergdb.exe.manifest).
+1 24 "seergdb.exe.manifest"

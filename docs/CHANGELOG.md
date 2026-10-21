@@ -4,6 +4,19 @@
 决策详情见 `docs/porting/decisions.md`（D1-D20），验证矩阵见
 `docs/porting/verification.md`，总体计划见 `docs/plan.md`。
 
+## 2026-10-21 — Windows exe 内嵌应用图标（D21）
+
+- 新增 `src/resources/icons/seergdb.ico`（上游 512px 美术生成，
+  16-256 七档）、`src/seergdb.rc`（`1 ICON` + `1 24`
+  RT_MANIFEST）、`src/seergdb.exe.manifest`（asInvoker +
+  supportedOS——显式替代 ld 对自带 .rsrc 的 exe 不再自动补的
+  默认 manifest）；`src/CMakeLists.txt` WIN32 块接线
+  `enable_language(RC)`；`.gitignore` 对 `seergdb.ico` 加定向例外
+  （上游 `icons/` 规则挡掉了它）。零 C++ 改动，Linux 构建不受影响。
+- 验证：PE 资源目录逐层解析（1 组图标 + 7 档 + 1 manifest）、
+  提取图标与 ico 条目逐像素比对、Windows/WSL2 双平台构建、exe
+  冒烟。随 v2.8.1-win3 发布。
+
 ## 2026-10-21 — README 头部加 fork 说明块（D20）
 
 - `README.md` 头部新增双语（英文 + 中文）fork 说明块：fork 定位
