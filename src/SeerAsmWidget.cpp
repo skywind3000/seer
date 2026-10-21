@@ -14,7 +14,7 @@ SeerAsmWidget::SeerAsmWidget(QWidget* parent) : QWidget(parent) {
 
     // Setup the widgets
     QFont font;
-    font.setFamily("monospace [Consolas]");
+    font.setFamily(Seer::resolveMonospaceFamily("monospace [Consolas]"));
     font.setFixedPitch(true);
     font.setStyleHint(QFont::TypeWriter);
 

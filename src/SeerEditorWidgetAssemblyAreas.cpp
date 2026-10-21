@@ -53,7 +53,7 @@ SeerEditorWidgetAssemblyArea::SeerEditorWidgetAssemblyArea(QWidget* parent) : Se
     _lineOffsetMap.clear();
     _lineOpcodeMap.clear();
 
-    QFont font("monospace");
+    QFont font(Seer::resolveMonospaceFamily("monospace"));
     font.setStyleHint(QFont::Monospace);
     setFont(font);
 

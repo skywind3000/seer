@@ -344,3 +344,34 @@
   分支上 merge upstream/main」——冲突标记里 ours=fork 侧，更贴
   合 D2 的冲突处理姿势。
 - 依据：主人 2026-10-21 决策（两个候选方案讨论后的拍板）。
+
+## D14 — Windows 默认等宽字体按偏好列表解析（Cascadia 优先）
+
+- 日期：2026-10-21
+- 状态：已采纳（主人决策；维护期第一个 fork 特性迭代）
+- 背景：Seer 全部文本视图的默认字体请求泛型族名 `monospace`
+  （部分视图是 `monospace [Consolas]` 拼写），Linux 由 fontconfig
+  解析；Windows 没有这个族，Qt 的替换选择是机器相关的任意值——
+  主人的机器上落 BIZ UDGothic（fonttest 对照机落 Courier New），
+  观感不可控。
+- 决策：新增 `Seer::resolveMonospaceFamily(requested)`（SeerUtl，
+  `Q_OS_WIN` 守卫，D2 最小 diff 路线）：Windows 下按主人给定的
+  偏好列表取第一个已安装的族——Cascadia Code、Cascadia Mono、
+  Consolas、Courier New；四者全无时退回
+  `QFontDatabase::systemFont(FixedFont)`。其余平台原样返回请求
+  字符串（Linux 行为逐字节不变）。用户显式设置过字体的路径
+  （`editor/font` 设置键）不受影响——本决策只作用于「未设置」
+  的默认分支。
+- 实施：12 处默认字体调用点全部包裹（编辑器三处默认值 + 配置页
+  reset + 主窗口设置缺省分支 + 汇编/数组/矩阵/十六进制/日志/命令
+  行/监视视图）；console 两处不动（Windows 下该页隐藏，见 D1）。
+  字体族枚举经 static 局部缓存，只在首次调用执行一次。
+- 验证：双平台构建 0 error（Windows `[62/62]`、WSL `[100%]`）；
+  fonttest（`.tmp/fonttest`，链接真实 `SeerUtl.cpp`）——Windows
+  侧四候选俱在、解析为 Cascadia Code（QFontInfo 精确命中）；Linux
+  侧 passthrough，请求字符串与解析结果均逐字不变（仍为 DejaVu
+  Sans Mono）。佐证摘录：`evidence/font-default-test.txt`。
+- 影响：上游 merge 若重写这些构造点，按 invariants.md 的冲突姿势
+  把包裹重嵌即可；丢失的表现是默认字体回退为机器相关的任意替换
+  ——可见、非静默，不入红线清单。
+- 依据：主人 2026-10-21 指定偏好列表；fonttest 双平台实测。

@@ -4,6 +4,16 @@
 决策详情见 `docs/porting/decisions.md`（D1-D13），验证矩阵见
 `docs/porting/verification.md`，总体计划见 `docs/plan.md`。
 
+## 2026-10-21 — Windows 默认等宽字体按偏好列表解析（D14）
+
+- 未设置字体的默认分支在 Windows 下按 **Cascadia Code →
+  Cascadia Mono → Consolas → Courier New** 取首个已安装项
+  （此前 Qt 对泛型 `monospace` 的替换是机器相关的任意值，实测
+  落 BIZ UDGothic / Courier New）；Linux 行为零变化，用户已设
+  字体不受影响。12 处默认字体调用点经
+  `Seer::resolveMonospaceFamily` 包裹，双平台构建 + fonttest
+  实测通过（`evidence/font-default-test.txt`）。
+
 ## 2026-10-21 — 维护期启动：分支重组（D13）+ 合并红线清单
 
 - **分支重组（D13）**：`main` 转为 fork 主干（GitHub 默认分支，
