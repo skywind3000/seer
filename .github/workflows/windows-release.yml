@@ -1,0 +1,127 @@
+name: Windows Release Package
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to build and attach the package to (e.g. v2.8.1-win1)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+env:
+  RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  package:
+    name: Build and upload the Windows package
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - name: Keep LF line endings for MSYS2 tools
+        run: git config --global core.autocrlf input
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2 (MINGW64)
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: false
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            mingw-w64-x86_64-qt6-base
+            mingw-w64-x86_64-qt6-charts
+            mingw-w64-x86_64-qt6-svg
+            mingw-w64-x86_64-gdb
+
+      - name: Build seergdb (Release)
+        shell: msys2 {0}
+        run: |
+          set -e
+          M="/${MSYSTEM,,}"
+          PREFIX="$(cygpath -m "$M")"
+          cmake -S src -B .tmp/ci-build -G Ninja \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_PREFIX_PATH="$PREFIX" \
+                -DQTVERSION=QT6
+          cmake --build .tmp/ci-build -j
+          strip .tmp/ci-build/seergdb.exe
+
+      - name: Stage the package (windeployqt + DLL closure + bundled gdb)
+        shell: msys2 {0}
+        run: |
+          set -e
+          M="/${MSYSTEM,,}"
+          VER="${RELEASE_TAG#v}"
+          D=".tmp/seer-${VER}-win64"
+          rm -rf "$D" && mkdir -p "$D"
+
+          # The application and the bundled debugger (D12; recipe: docs/build-windows.md section 4).
+          cp .tmp/ci-build/seergdb.exe "$D/"
+          cp "$M/bin/gdb.exe" "$D/"
+
+          # Qt's own DLLs and plugins.
+          windeployqt "$D/seergdb.exe"
+
+          # MinGW runtime, Qt's third-party dependencies and gdb's dependencies:
+          # copy the import-table closure from the toolchain, iterating to a
+          # fixpoint -- a single pass loses third-level deps. DLLs that are not
+          # in the toolchain's bin are system DLLs and are skipped.
+          changed=1
+          while [ "$changed" -ne 0 ]; do
+            changed=0
+            missing="$(find "$D" \( -name '*.exe' -o -name '*.dll' \) | while read -r f; do
+              objdump -p "$f" | sed -n 's/^[[:space:]]*DLL Name:[[:space:]]*//p'
+            done | sort -u | while read -r dll; do
+              if [ -f "$M/bin/$dll" ] && [ ! -f "$D/$dll" ]; then
+                printf '%s\n' "$dll"
+              fi
+            done)"
+            if [ -n "$missing" ]; then
+              changed=1
+              echo "closure round: $(echo $missing | tr '\n' ' ')"
+              for dll in $missing; do
+                cp "$M/bin/$dll" "$D/"
+              done
+            fi
+          done
+
+          echo "=== staged package ==="
+          ls -l "$D"
+
+      - name: Create the zip
+        shell: pwsh
+        run: |
+          $ver = "${{ env.RELEASE_TAG }}".TrimStart('v')
+          Compress-Archive -Path ".tmp/seer-$ver-win64" -DestinationPath ".tmp/seer-$ver-win64.zip" -Force
+
+      - name: Keep the zip as a workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: seer-win64-zip
+          path: .tmp/seer-*-win64.zip
+          if-no-files-found: error
+
+      - name: Upload the zip to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          # For workflow_dispatch runs: create a draft release if the tag has none yet,
+          # so the flow can be rehearsed without publishing anything.
+          if ! gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            echo "Release '$RELEASE_TAG' not found; creating a draft."
+            gh release create "$RELEASE_TAG" --draft --title "$RELEASE_TAG" --notes "Draft created by workflow_dispatch rehearsal."
+          fi
+          VER="${RELEASE_TAG#v}"
+          gh release upload "$RELEASE_TAG" ".tmp/seer-${VER}-win64.zip" --clobber
+          echo "Uploaded seer-${VER}-win64.zip to release ${RELEASE_TAG}"
