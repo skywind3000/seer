@@ -795,6 +795,7 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
 | 2026-10-21 | D15：恢复长期 develop——中长期功能集成分支（动手前先 merge main，完成后归并回 main；上游同步仍只落 main） | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 | 2026-10-21 | D16：仓库更名 seer-windows（发布准备）——仓库层改名、产品/二进制层保持 seergdb；origin remote 更新 | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 | 2026-10-21 | D17：发布 CI——release 触发自动构建并上传 `seer-<版本>-win64.zip`（闭包打包 + gdb 随包）；win32 经核实不可行（MSYS2 无 i686 Qt6，且实测 64 位 gdb 可调 32 位程序） | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
+| 2026-10-21 | D18：发布版本号规则 `v{上游版本}-win{N}`——fork 发布 +1、基线升级重置；tag 只在真发布时打、打在发布提交上，细则见 maintenance.md §6 | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 
 ## 风险登记
 

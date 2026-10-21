@@ -4,6 +4,12 @@
 决策详情见 `docs/porting/decisions.md`（D1-D13），验证矩阵见
 `docs/porting/verification.md`，总体计划见 `docs/plan.md`。
 
+## 2026-10-21 — 发布版本号规则成文（D18）
+
+- tag 一律 `v{上游版本}-win{N}`：fork 发布计数 +1、上游基线
+  升级时重置；tag 只在真发布时打、打在要发布的 `main` 提交
+  上。细则见 `docs/porting/maintenance.md` §6。
+
 ## 2026-10-21 — 发布 CI：release 自动构建并上传 Windows 包（D17）
 
 - 新增 `windows-release.yml`：发布 release 时自动用 MSYS2

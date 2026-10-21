@@ -487,3 +487,18 @@
 - 依据：主人 2026-10-21 需求；MSYS2 仓库核实（本机 pacman 库）
   与 biarch 实测（`.tmp/biarch/`）；`docs/build-windows.md` §4；
   setup-msys2@v2 README。
+
+## D18 — 发布版本号规则：v{上游版本}-win{N}
+
+- 日期：2026-10-21
+- 状态：已采纳（主人决策；把 D13 的 tag 方案细化成固定规则）
+- 背景：首个 release 在即，需要定死后续 tag 与版本号的进位
+  规则，避免每次发布临时拍脑袋。
+- 决策：tag 一律 `v{上游版本}-win{N}`。上游号 = 不高于实际
+  基线的最近上游 release；`win` 号为同一基线上的 fork 发布
+  计数——纯 fork 修复发布时 +1，基线升级（上游 merge 进新
+  release）后重置为 1。只在真发布时打 tag，且打在要发布的那
+  次 `main` 提交上（发布 workflow 从 tag 构建，tag 停在旧提交
+  会让发布的包缺代码）。细则与发布流程见 maintenance.md §6。
+- 依据：主人 2026-10-21 拍板（「v{上游版本号}-win{patch号}」
+  格式的确认与进位细则讨论）。

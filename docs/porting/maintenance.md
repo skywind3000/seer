@@ -86,3 +86,25 @@
   linux-verify.sh`）与 Windows 侧（`.tmp/phase6/`）都在 `.tmp`
   （不进库），换机后按 `AGENTS.local.md` 重建环境时可一并重
   建——必要的话未来把它们提升为 `tests/` 下的脚本。
+
+## 6. 发布与版本号
+
+- tag 一律 `v{上游版本}-win{N}`（依 D13/D18，如 `v2.8.1-win1`）。
+  上游号取**不高于实际基线的最近上游 release**——按 §1 节奏
+  同步时与实际严格相等；基线取自上游 main 中段时向下取整并在
+  tag 注记说明（v2.8.1-win1 即此情况）。`win` 号是同一基线上的
+  fork 发布计数：纯 fork 修复发布时 +1，基线升级（上游 merge 进
+  新 release）后重置为 1：
+
+      v2.8.1-win1 → fork 修复 → v2.8.1-win2 → 同步 2.9.0 → v2.9.0-win1
+
+- 只在真发布（要挂 zip 的动作）时打 tag，且打在**要发布的那次
+  `main` 提交**上——`windows-release.yml` 从 tag 的提交构建，
+  tag 停在旧提交会让发布的包缺代码（D17 期间实踩）。zip 名由
+  tag 派生（去 `v` 前缀，如 `seer-2.9.0-win2-win64.zip`），不
+  另维护版本号。
+- 发布流程：tag 就位 → Actions 页 workflow_dispatch 演练（无
+  release 时自动建 draft 并上传 zip）→ 补 notes → Publish
+  （publish 触发的重构建以 `--clobber` 替换同名 zip，预期行为）。
+- `pre-sync-<日期>` 回滚锚点（§1）是独立命名空间，与发布 tag
+  互不干扰。

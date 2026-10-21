@@ -122,7 +122,8 @@ issue #94 是本项目最重要的背景资料，动手移植前请先读完它�
   随包，配方见 `docs/build-windows.md` §4）并上传到该 release，
   也支持 workflow_dispatch 指定 tag 演练（见 D17）。上游遗留的
   其余打包 workflow（snap/flatpak/debian/macos 等，均手动触发）
-  已废弃删除。
+  已废弃删除。发布与版本号规则见
+  `docs/porting/maintenance.md` §6。
 
 ### WSL2 环境现状（2026-10-20 实测，Qt6 依赖已解决）
 
