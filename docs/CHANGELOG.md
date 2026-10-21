@@ -4,6 +4,13 @@
 决策详情见 `docs/porting/decisions.md`（D1-D13），验证矩阵见
 `docs/porting/verification.md`，总体计划见 `docs/plan.md`。
 
+## 2026-10-21 — 废除 push 级 CI（D19）
+
+- 删除 `build-latest.yml`：push / PR / develop 归并不再触发任何
+  CI；自动构建只在发布 release 时发生（`windows-release.yml`）。
+  「Linux 不回归」守卫回归本地 WSL2 构建（maintenance.md §1 的
+  双平台回归仍为 merge 强制步骤）。
+
 ## 2026-10-21 — 发布版本号规则成文（D18）
 
 - tag 一律 `v{上游版本}-win{N}`：fork 发布计数 +1、上游基线

@@ -34,7 +34,7 @@
      stdin/never 各一 + 一个中文路径会话）+ §3 隔离边界 grep
      复查；
   5. 通过后 `git switch main && git merge sync/<yyyymmdd>`（快进）
-     并 `git push origin main`（触发 CI）；随后
+     并 `git push origin main`；随后
      `git fetch upstream main:upstream-main`、
      `git push origin upstream-main` 让镜像跟进，删除集成分支；
   6. 更新本 fork 的 CHANGELOG，并在「上游同步记录」追加一行，

@@ -20,9 +20,8 @@ issue #94 是本项目最重要的背景资料，动手移植前请先读完它�
 ### 1. 分支策略
 
 - `main`：fork 主干，GitHub 默认分支。**短期修改**（小 bug、单点
-  改动）直接在此提交，验证通过再 push（D13/D15）；push 会触发
-  `build-latest.yml` 的 CI 构建。不方便直接提交的可用短命 `fix/*`
-  分支，合入后删除。
+  改动）直接在此提交，验证通过再 push（D13/D15）。不方便直接提交
+  的可用短命 `fix/*` 分支，合入后删除。
 - `develop`：中长期功能的集成分支（D15），从 `main` 分离、长期
   存在：
   - 动手前先同步——`git switch develop && git merge main`（无
@@ -31,8 +30,9 @@ issue #94 是本项目最重要的背景资料，动手移植前请先读完它�
     git merge develop`（双平台验证通过后再 push）；
   - **不从 `upstream` 取更新**——上游同步只落 `main`（见下），
     `develop` 只从 `main` 取，保证上游集成点唯一；
-  - push `develop` 不触发 CI（触发条件是 `main`/PR），归并回
-    `main` 的 push 会触发，作为落地前的最后一道自动构建。
+  - 仓库没有 push 级 CI（D19）——自动构建只在发布 release 时
+    发生（`windows-release.yml`）；日常与归并前的验证靠本地
+    双平台构建（maintenance.md §1）。
 - `upstream-main`：上游 `main` 的只读镜像（本地与 origin 同名分支），
   只在同步上游时快进（`git fetch upstream main:upstream-main`），
   平时不提交任何改动。
@@ -116,13 +116,14 @@ issue #94 是本项目最重要的背景资料，动手移植前请先读完它�
   OpenGL。
 - `src/build_seerutl/` 是 `SeerUtl` 的独立小测试工程，它的 cmake 参数
   是单个 `.`（CMakeLists.txt 就在该目录内），不是 `..`。
-- CI：`build-latest.yml` 在 push/PR 到 `main` 时构建 Linux 版
-  （「Linux 不回归」的自动守卫）；`windows-release.yml` 在发布
-  release 时自动构建 Windows 包（windeployqt + DLL 闭包 + gdb
-  随包，配方见 `docs/build-windows.md` §4）并上传到该 release，
-  也支持 workflow_dispatch 指定 tag 演练（见 D17）。上游遗留的
-  其余打包 workflow（snap/flatpak/debian/macos 等，均手动触发）
-  已废弃删除。发布与版本号规则见
+- CI 只有一个：`windows-release.yml`——发布 release 时自动构建
+  Windows 包（windeployqt + DLL 闭包 + gdb 随包，配方见
+  `docs/build-windows.md` §4）并上传到该 release，也支持
+  workflow_dispatch 指定 tag 演练（见 D17/D19）。**push / PR /
+  develop 归并不触发任何 CI**（D19）——「Linux 不回归」的守卫是
+  本地 WSL2 构建（maintenance.md §1 的双平台回归步骤）。上游
+  遗留的全部打包 workflow（含曾在 push 时触发的
+  build-latest.yml）已废弃删除。发布与版本号规则见
   `docs/porting/maintenance.md` §6。
 
 ### WSL2 环境现状（2026-10-20 实测，Qt6 依赖已解决）

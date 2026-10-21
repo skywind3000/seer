@@ -502,3 +502,26 @@
   会让发布的包缺代码）。细则与发布流程见 maintenance.md §6。
 - 依据：主人 2026-10-21 拍板（「v{上游版本号}-win{patch号}」
   格式的确认与进位细则讨论）。
+
+## D19 — 废除 push 级 CI：自动构建只在 release 时发生
+
+- 日期：2026-10-21
+- 状态：已采纳（主人决策；修订 D15 第 5 条与 D17 中「保留
+  build-latest.yml 作 Linux CI 守卫」的安排）
+- 背景：D17 曾保留上游的 `build-latest.yml`（push/PR 到 `main`
+  时构建 Linux 版）作为「Linux 不回归」的自动守卫。主人明确不
+  希望 push 触发任何 CI——仓库的自动构建只应发生在创建 release
+  时。
+- 决策：删除 `build-latest.yml`，仓库仅存 `windows-release.yml`
+  （release 触发 + workflow_dispatch 演练）。push / PR / develop
+  归并一律不触发 CI。
+- 取代项与代价：失去 push 级的 Linux 编译自动复核；「Linux 不
+  回归」的关口回到**本地 WSL2 构建**——maintenance.md §1 第 4
+  步的双平台回归仍是上游 merge 的强制步骤，守卫作用不丢，只是
+  从自动变人工。日后若想恢复，加回一个带 push 触发的 Linux
+  构建 workflow 即可（历史版本见 git）。
+- 影响：AGENTS.md 分支策略与 CI 说明、maintenance.md §1 的
+  「（触发 CI）」字样同步改写；D15 第 5 条、D17 的相应表述以
+  本决策为准。
+- 依据：主人 2026-10-21 指示（「push 到 main 不应该触发，创建
+  release 后才触发」）。
