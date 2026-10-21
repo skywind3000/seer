@@ -4,8 +4,10 @@
 
 ## 项目概况
 
-Seer 是 Linux 上的 gdb GUI 前端（Qt6 / C++17）。本仓库是它的 fork，
-长期目标是做 Windows 移植（见下文）。
+Seer 是 Linux 上的 gdb GUI 前端（Qt6 / C++17）。本仓库是它的 fork。
+Windows 原生移植已完成（phase 0-7，见 `docs/plan.md`），现处于长期
+维护期：自行修复缺陷 + 定期合并上游更新（工作流见
+`docs/porting/maintenance.md`）。
 
 - 上游项目：<https://github.com/epasveer/seer>
 - 上游关于 Windows 移植的 feature-request 及原作者的讨论：
@@ -17,13 +19,23 @@ issue #94 是本项目最重要的背景资料，动手移植前请先读完它�
 
 ### 1. 分支策略
 
-- `main`：保留上游原始代码，只作为查证与 diff 对照的基线。不要在
-  `main` 上提交任何改动。
-- `develop`：本项目后续所有更改都在这个分支上进行，是默认工作分支。
+- `main`：fork 主干，GitHub 默认分支。日常开发落点：小修直接提交，
+  非平凡改动走短命 `fix/*` 分支合入后删除（D13）。push 到 `main`
+  会触发 `build-latest.yml` 的 CI 构建。
+- `upstream-main`：上游 `main` 的只读镜像（本地与 origin 同名分支），
+  只在同步上游时快进（`git fetch upstream main:upstream-main`），
+  平时不提交任何改动。
+- `upstream` remote 指向 `https://github.com/epasveer/seer`，推送已
+  禁用。同步上游一律走 `docs/porting/maintenance.md` §1 的本地
+  merge 流程；**不要用 GitHub 的 "Sync fork" 按钮**。
 - 需要对照原始实现时：
 
-      git show main:src/SeerGdbWidget.cpp
-      git diff main..develop -- src/
+      git show upstream-main:src/SeerGdbWidget.cpp
+      git diff upstream-main..main -- src/
+
+- 合并上游、或改动移植层（console 分流、gdb/mi 链路、路径处理、
+  设置落盘、平台隔离）之前，必读 `docs/porting/invariants.md`
+  的红线清单。
 
 ### 2. 临时文件一律放 `.tmp/`
 
@@ -68,14 +80,18 @@ issue #94 是本项目最重要的背景资料，动手移植前请先读完它�
   「决策记录」表加一行索引。
 - 其余细则（状态取值、文件去向、Linux 回归要求）见 plan.md 的
   「使用规则（给 agent）」一节。
+- 移植 phase 0-7 已全部完成，项目进入维护期：日常修复与上游同步
+  的工作流见 `docs/porting/maintenance.md`。
 
 ## 构建与验证
 
 具体的构建工具位置与调用方式见根目录的 `AGENTS.local.md`（若存在）。
 下面是项目侧的构建约定。
 
-原版**不支持 Windows 原生构建**。如果非要 build 原版代码，请到 WSL2
-里去 build。
+本 fork 在 Windows 上原生构建（MinGW64 + Qt6）：从零构建说明见
+`docs/build-windows.md`，本机完整命令见 `AGENTS.local.md` §6。
+下述 WSL2 构建用于 Linux 回归，也用于构建未经本 fork 修改的原版
+代码——原版不支持 Windows 原生构建，要 build 原版请到 WSL2。
 
 - WSL2 发行版：`Ubuntu-24.04`（WSL1 的 `Debian` 不用于本项目）。
 - 构建入口是 `src/CMakeLists.txt`，这是仓库里唯一的 CMake 工程，根目录
@@ -106,14 +122,15 @@ issue #94 是本项目最重要的背景资料，动手移植前请先读完它�
 
 安装系统包属于改动 WSL 环境，动手前先跟主人确认。
 
-## 长期目标：Windows 移植
+## 背景：Windows 移植（已完成）
 
-目标是在 Windows 上原生构建并运行 Seer（Qt6 + MinGW 或 MSVC），而不是
-长期依赖 WSL 跑 Linux 版。
+目标是在 Windows 上原生构建并运行 Seer（Qt6 + MinGW），不长期依赖
+WSL 跑 Linux 版。该目标已随 phase 0-7 的交付达成；后续维护（修
+缺陷、定期 merge 上游）的流程见 `docs/porting/maintenance.md`。
 
-总体实施计划（phase 划分、各阶段验证出口条件）见 `docs/plan.md`，
-已定决策见 `docs/porting/decisions.md`；跟踪规则见上面「硬性约束」
-第 5 条。本节其余内容是背景资料，与决策冲突时以 decisions.md 为准。
+移植期的总体计划（phase 划分、各阶段验证出口条件）见
+`docs/plan.md`，已定决策见 `docs/porting/decisions.md`。本节其余
+内容是移植期的背景资料，与决策冲突时以 decisions.md 为准。
 
 ### 上游的态度（issue #94）
 
@@ -161,7 +178,9 @@ Windows 不做 GUI 内虚拟终端，被调试程序弹出独立控制台窗口�
 
 ### 其余平台耦合点
 
-除 PTY 外范围很小（2026-10-20 grep 结果）：
+除 PTY 外范围很小（2026-10-20 grep 结果；**这是移植前的耦合点
+快照**，现状以 `docs/porting/decisions.md` 与
+`docs/porting/invariants.md` 为准）：
 
 | 位置 | 耦合内容 |
 | --- | --- |

@@ -10,15 +10,33 @@
 - 节奏：跟随上游 release（上游大约每季度一个版本）。每个上游
   release 发布后，做一次 merge；小改动攒着随 release 一起合，
   不逐 commit 追。
+- 分支（D13）：`main` 是 fork 主干（GitHub 默认分支）；
+  `upstream-main` 是上游 `main` 的只读镜像，只在本流程快进。
+  上游 remote 名为 `upstream`（指向
+  `https://github.com/epasveer/seer`，推送已禁用）。**不要用
+  GitHub 的 "Sync fork" 按钮**——它绕过冲突处理与回归验证，直接
+  把上游代码怼进 `main`。
 - 流程：
-  1. `git fetch upstream`（上游 remote 指向
-     `https://github.com/epasveer/seer`）；
-  2. 从 `upstream/main` 切一个集成分支 merge `develop`，
-     冲突处理原则见 §2；
-  3. 双平台回归：WSL2 全量构建 + `tests/hellopathnorm` 13 项 +
-     Windows 矩阵抽样（`.tmp/phase6/` 装备，建议每类抽 2-3 个：
-     normal/stop/stdin/never 各一 + 一个中文路径会话）；
-  4. 通过后 merge 回 `develop`，更新本 fork 的 CHANGELOG。
+  1. `git fetch upstream`；
+     `git log --oneline upstream-main..upstream/main` 预览上游
+     新增；
+  2. 通读 `docs/porting/invariants.md` 红线清单，明确这次
+     merge 哪些不能丢（B 类「行为性红线」最危险：丢失后构建
+     绿灯、功能静默坏）；
+  3. `git tag pre-sync-<yyyymmdd> main` 留回滚锚点，
+     `git switch -c sync/<yyyymmdd> main`，在其上
+     `git merge upstream/main`，冲突处理原则见 §2；
+  4. 冲突解决完逐条核对 invariants.md，再跑双平台回归：WSL2
+     全量构建 + `tests/hellopathnorm` 13 项 + Windows 矩阵抽样
+     （`.tmp/phase6/` 装备，建议每类抽 2-3 个：normal/stop/
+     stdin/never 各一 + 一个中文路径会话）+ §3 隔离边界 grep
+     复查；
+  5. 通过后 `git switch main && git merge sync/<yyyymmdd>`（快进）
+     并 `git push origin main`（触发 CI）；随后
+     `git fetch upstream main:upstream-main`、
+     `git push origin upstream-main` 让镜像跟进，删除集成分支；
+  6. 更新本 fork 的 CHANGELOG，并在「上游同步记录」追加一行，
+     注明「invariants 红线逐条核对无回退」。
 - 上游无 release 的窗口期，只在明确需要某个上游修复时按需
   cherry-pick。
 
@@ -28,8 +46,9 @@
   `SeerStackTrace.cpp`）——这些文件上游不存在，永不冲突；
 - 上游文件内的改动保持「最小、集中、带 `#ifdef Q_OS_WIN` 守卫
   和注释」——冲突时优先保上游结构，把我们的平台块重新嵌入；
-- 逐个决策（decisions.md D1-D12）都有「影响面」一节写了 rebase
-  时的冲突面，merge 前过一遍；
+- 合并前后的红线核对以 `docs/porting/invariants.md` 为准（它是
+  decisions.md 各条「影响面」的提炼）；decisions.md D1-D13 的
+  「影响面」一节是细则出处，需要时再深入；
 - 冲突解决后必须跑双平台回归（§1 流程第 3 步），不看 diff 自信。
 
 ## 3. 平台隔离边界复查

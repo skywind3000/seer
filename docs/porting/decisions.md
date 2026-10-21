@@ -296,3 +296,51 @@
   参数覆盖），不排除未来用户偏好。
 - 影响：打包体积增加（gdb + 依赖约 60MB）；版本演进时 gdb 与
   Seer 同包升级，避免「用户 gdb 版本差异」这一整类支持负担。
+
+## D13 — 维护期分支重组：main 转 fork 主干，upstream-main 镜像上游
+
+- 日期：2026-10-21
+- 状态：已采纳（主人决策）
+- 背景：移植 phase 0-7 交付完成，项目转入长期维护（自行修复 +
+  定期合并上游）。原布局（`main`=上游基线镜像、`develop`=工作
+  分支）有三个问题：GitHub 默认分支是纯上游代码，访客打开 fork
+  看不到任何移植成果；长期拿 `develop` 当默认分支语义不达意；
+  CI（`build-latest.yml`）触发条件是 push `main`，原布局下永不
+  触发。主人提出两个候选：①`main` 继续跟踪上游、`develop` 改名
+  `master` 设为默认；②现 `main` 另存为镜像分支、`develop` 合入
+  `main` 作为日后开发分支。
+- 决策：采方案②之修正版：
+  1. `main`：fork 主干与 GitHub 默认分支。原 `develop` 内容纯
+     快进合入（原 `main` 是其祖先，无需 force push；GitHub 默认
+     分支名不变，零设置改动）。日常开发落点——小修直接提交，
+     非平凡改动走短命 `fix/*` 分支合入后删除；`develop` 删除，
+     不再维护长期开发分支。
+  2. `upstream-main`：上游 `main` 的只读镜像（建自原 `main` 的
+     内容——恰为上游 HEAD `8d19e2d`，本地与 origin 同名），
+     只在同步流程中快进（`git fetch upstream main:upstream-main`）。
+     镜像不叫裸名 `upstream`——与 remote 名撞车，人眼与脚本都
+     易混。
+  3. `upstream` remote 指向 `https://github.com/epasveer/seer`，
+     push URL 设为 DISABLE 防误推。同步一律走 maintenance.md §1
+     的本地 merge 流程（pre-sync 锚点 tag + invariants 红线
+     核对 + 双平台回归），不用 GitHub 的 "Sync fork" 按钮。同步
+     用 merge 不用 rebase：永久 fork 下 rebase 每次重放全部移植
+     史、重解一遍冲突且改写已发布 hash。
+  4. 弃方案①（main=镜像、develop 改名 master 设默认）的理由：
+     「main=上游镜像」违反 main 为主干的通行惯例，本项目由
+     agent 长期维护，反直觉命名是持续的出错面；且上游默认分支
+     恰也叫 `main`，fork 内 `master`=自己、`main`=镜像上游
+     `main` 的名字错位最易在 diff/show/checkout 时拿错边；CI
+     触发条件也仍需改造。
+  5. 同步建立合并红线清单 `docs/porting/invariants.md`（活文档，
+     随上游演化更新；decisions.md 保持「为什么」的历史出处），
+     作为每次 merge 前后逐条核对的依据。交付点打 tag
+     `v2.8.1-win1`（基线为上游 v2.8.1 之后的 main 快照 `8d19e2d`
+     + phase 0-7 移植成果；后续同步随上游 release 递增命名）。
+- 影响：`AGENTS.md` 硬性约束 1（分支策略）与构建/背景章节、
+  `docs/plan.md` 使用规则与 Phase 7 收尾、maintenance.md §1/§2
+  同步改写；`docs/CHANGELOG.md` 记一条。上游同步流程从「从
+  upstream/main 切集成分支 merge develop」简化为「在 sync/*
+  分支上 merge upstream/main」——冲突标记里 ours=fork 侧，更贴
+  合 D2 的冲突处理姿势。
+- 依据：主人 2026-10-21 决策（两个候选方案讨论后的拍板）。

@@ -1,8 +1,23 @@
 # Seer Windows fork 变更记录
 
 本文件是 fork 自身的变更记录（上游 `CHANGELOG.md` 保持原样）。
-决策详情见 `docs/porting/decisions.md`（D1-D12），验证矩阵见
+决策详情见 `docs/porting/decisions.md`（D1-D13），验证矩阵见
 `docs/porting/verification.md`，总体计划见 `docs/plan.md`。
+
+## 2026-10-21 — 维护期启动：分支重组（D13）+ 合并红线清单
+
+- **分支重组（D13）**：`main` 转为 fork 主干（GitHub 默认分支，
+  原 `develop` 内容纯快进合入），上游镜像另存为 `upstream-main`
+  并保留在 origin；`develop` 删除。配置 `upstream` remote（指向
+  epasveer/seer，推送禁用）。同步上游走
+  `docs/porting/maintenance.md` §1 的本地 merge 流程（pre-sync
+  锚点 + 红线核对 + 双平台回归），不用 GitHub 的 "Sync fork"
+  按钮。
+- **新增 `docs/porting/invariants.md`**：合并红线清单——结构
+  性/行为性不变量逐条「红线 + 坑 + 验证 + 出处」，merge 冲突
+  解决后逐条核对，防止移植成果被无声回退。
+- 交付点打 tag `v2.8.1-win1`；phase 0-7 经主人确认完结
+  （plan.md Phase 7 置「已完成」）。
 
 ## 2026-10-21 — Windows 移植完成（Phase 0-7）
 

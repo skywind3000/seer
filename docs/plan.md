@@ -11,7 +11,10 @@
 ## 使用规则（给 agent）
 
 1. 开工前先读 `AGENTS.md`；若仓库根存在 `AGENTS.local.md`，必须再读它。
-2. 所有工作在 `develop` 分支进行；`main` 保持上游基线不动。
+2. 所有工作在 `main` 分支（fork 主干，GitHub 默认分支，D13）进行；
+   `upstream-main` 保持上游镜像不动，只在同步上游时快进。合并
+   上游或改动移植层前，先读 `docs/porting/invariants.md` 的红线
+   清单。
 3. 文件去向按类型分，不混放：
    - 临时产物（PoC 源码、运行日志、构建目录、截图）放 `.tmp/`，不提交；
    - 各 phase 的正式**文档**放 `docs/porting/`（environment.md、
@@ -62,7 +65,7 @@
 | 4 | 垂直切片：Windows 全量构建 | 已完成 | Windows 上核心调试流程可用（console 走弹窗方案） |
 | 5 | 平台后端补齐 | 已完成 | inferior 控制台（弹窗）/ 进程信息 / 平台杂项可用 |
 | 6 | 系统性交叉验证 | 已完成 | `docs/porting/verification.md` 验证矩阵 |
-| 7 | 交付 | 待复核 | `docs/build-windows.md` + 打包 + 维护策略 |
+| 7 | 交付 | 已完成 | `docs/build-windows.md` + 打包 + 维护策略 |
 
 为什么这样切，见文末「与最初八步设想的映射」。
 
@@ -765,6 +768,11 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
   （AGENTS.local.md §8）、moc/uic 位置更正（在 `share/qt6/bin`）、
   ConstrainedLanguage PowerShell 说明（§9）。佐证：`.tmp/verify-m1/`。
   Phase 7 维持「待复核」。
+- 2026-10-21 追记（维护期启动）：主人确认 phase 0-7 交付完成，
+  项目转入长期维护期。起始动作：分支重组（D13——`main` 转为
+  fork 主干与 GitHub 默认分支、`upstream-main` 镜像上游、
+  `develop` 删除）与合并红线清单
+  （`docs/porting/invariants.md`）。置「已完成」。
 
 ---
 
@@ -782,6 +790,7 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
 | 2026-10-20 | D10：Windows 下 QSettings 强制 IniFormat（macros/scripts 目录派生自 fileName()，注册表形态失效） | 路径四维扫描产出，全文见 `docs/porting/decisions.md` | Phase 5 |
 | 2026-10-21 | D11：MI 线缆编码与转义还原——写 toLocal8Bit（Win）/读 fromLocal8Bit、`fullname` 的 `\NNN` 八进制按 host-charset 还原（全平台） | Phase 6 中文路径边界产出，全文见 `docs/porting/decisions.md` | Phase 6 |
 | 2026-10-21 | D12：gdb 随包分发（同目录并置 gdb.exe + MinGW 依赖，--gdb-program 可覆盖） | Phase 7 打包实测产出，全文见 `docs/porting/decisions.md` | Phase 7 |
+| 2026-10-21 | D13：维护期分支重组——`main` 转 fork 主干（GitHub 默认分支），`upstream-main` 镜像上游，`develop` 删除；新增合并红线清单 `docs/porting/invariants.md` | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 
 ## 风险登记
 
