@@ -100,15 +100,22 @@ jobs:
       - name: Create the zip
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           $ver = "${{ env.RELEASE_TAG }}".TrimStart('v')
           Compress-Archive -Path ".tmp/seer-$ver-win64" -DestinationPath ".tmp/seer-$ver-win64.zip" -Force
+          if (-not (Test-Path ".tmp/seer-$ver-win64.zip")) { throw "zip was not created" }
 
+      # upload-artifact excludes dot-prefixed directories (our .tmp/)
+      # unless include-hidden-files is set -- keep it non-blocking too:
+      # this is a debugging backup, the release upload is the real gate.
       - name: Keep the zip as a workflow artifact
         uses: actions/upload-artifact@v4
+        continue-on-error: true
         with:
           name: seer-win64-zip
           path: .tmp/seer-*-win64.zip
           if-no-files-found: error
+          include-hidden-files: true
 
       - name: Upload the zip to the release
         shell: bash

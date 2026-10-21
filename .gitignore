@@ -72,12 +72,17 @@ __pycache__/*
 
 /.*/*
 
+# Let GitHub's own directory through the dot-directory catch-all above.
+!.github/*
+
 /AGENTS.local.md
 
 nul
 
 
-*.cmd# hellopathnorm build artifacts
+*.cmd
+
+# hellopathnorm build artifacts
 tests/hellopathnorm/hellopathnorm
 tests/hellopathnorm/hellopathnorm.exe
 tests/hellopathnorm/moc_*.cpp
