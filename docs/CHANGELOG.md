@@ -4,6 +4,14 @@
 决策详情见 `docs/porting/decisions.md`（D1-D13），验证矩阵见
 `docs/porting/verification.md`，总体计划见 `docs/plan.md`。
 
+## 2026-10-21 — 仓库更名 seer-windows（发布准备，D16）
+
+- GitHub 仓库更名为 `skywind3000/seer-windows`（fork 关系、tag
+  与 CI 历史保留，旧 URL 自动重定向）；开发机 origin remote
+  更新为 <https://github.com/skywind3000/seer-windows.git>。产品
+  与二进制名保持 `seergdb` 不变——设置路径（D10）、WER 注册键、
+  打包（D12）均不受影响。
+
 ## 2026-10-21 — 恢复 develop 集成分支（D15）
 
 - 建立长期 `develop`（自 `main` 顶端分离并推送 origin）：中长期

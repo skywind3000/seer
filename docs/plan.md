@@ -793,6 +793,7 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
 | 2026-10-21 | D13：维护期分支重组——`main` 转 fork 主干（GitHub 默认分支），`upstream-main` 镜像上游，`develop` 删除；新增合并红线清单 `docs/porting/invariants.md` | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 | 2026-10-21 | D14：Windows 默认等宽字体按偏好列表解析（Cascadia Code → Mono → Consolas → Courier New），用户已设字体不受影响，Linux 零变化 | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 | 2026-10-21 | D15：恢复长期 develop——中长期功能集成分支（动手前先 merge main，完成后归并回 main；上游同步仍只落 main） | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
+| 2026-10-21 | D16：仓库更名 seer-windows（发布准备）——仓库层改名、产品/二进制层保持 seergdb；origin remote 更新 | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 
 ## 风险登记
 

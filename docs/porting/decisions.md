@@ -404,3 +404,33 @@
   upstream-main 镜像、upstream remote 禁推、同步用 merge 不用
   rebase、不点 "Sync fork" 等约定全部维持。
 - 依据：主人 2026-10-21 决策。
+
+## D16 — 仓库更名 seer-windows；产品与二进制名保持 seergdb
+
+- 日期：2026-10-21
+- 状态：已采纳（主人决策；发布准备的组成部分）
+- 背景：维护期首次公开发布在即，需要与上游 epasveer/seer 区分
+  仓库身份。候选 seer-windows / seer-win32 / seer-port / seer-ng
+  中选 seer-windows：与版本号方案 `v2.8.1-win1` 的 `-win` 后缀
+  配套；seer-win32 与「x64 为主、双架构兼容」的事实冲突；
+  seer-port 描述的是已完成的过渡活动；seer-ng 暗示代际重写，
+  与 D2 的「最小 diff、跟随上游」路线相反。
+- 决策（两层命名策略）：
+  1. **仓库层**改名 `seer-windows`（GitHub Settings 操作，
+     2026-10-21 完成）：fork 关系保留，旧 URL 由 GitHub 自动
+     重定向；开发机 origin remote 显式更新到
+     `https://github.com/skywind3000/seer-windows.git`
+     （本机已改，第二台机器执行同一行
+     `git remote set-url origin` 命令）；`upstream` remote
+     （epasveer/seer，禁推）不受影响。
+  2. **产品/二进制层不动**：可执行文件仍为 `seergdb`，设置仍落
+     `%APPDATA%\seergdb`（D10），WER 崩溃捕获注册键仍指向
+     `seergdb.exe`，打包（D12）不变。理由：本 fork 的价值主张
+     是「带 Windows 支持的 Seer」而非新产品——名字贴上游走，
+     用户才能把上游 changelog 映射到手里版本；改二进制名只会
+     让老用户设置作废、崩溃捕获网重配，零收益。
+- 影响：仓库文档经 grep 核实无 origin URL 引用，更名零存量文档
+  改动（本决策与 CHANGELOG 为记录性新增）；对外身份靠 repo
+  Description/Topics 与 Release 表达——README 是上游文档保持
+  原样（AGENTS.md 硬性约束 3），不在其中添加 fork 说明。
+- 依据：主人 2026-10-21 决策（发布准备；四个候选名的取舍）。
