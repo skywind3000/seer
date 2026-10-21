@@ -794,6 +794,7 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
 | 2026-10-21 | D14：Windows 默认等宽字体按偏好列表解析（Cascadia Code → Mono → Consolas → Courier New），用户已设字体不受影响，Linux 零变化 | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 | 2026-10-21 | D15：恢复长期 develop——中长期功能集成分支（动手前先 merge main，完成后归并回 main；上游同步仍只落 main） | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 | 2026-10-21 | D16：仓库更名 seer-windows（发布准备）——仓库层改名、产品/二进制层保持 seergdb；origin remote 更新 | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
+| 2026-10-21 | D17：发布 CI——release 触发自动构建并上传 `seer-<版本>-win64.zip`（闭包打包 + gdb 随包）；win32 经核实不可行（MSYS2 无 i686 Qt6，且实测 64 位 gdb 可调 32 位程序） | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 
 ## 风险登记
 

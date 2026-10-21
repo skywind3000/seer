@@ -4,6 +4,19 @@
 决策详情见 `docs/porting/decisions.md`（D1-D13），验证矩阵见
 `docs/porting/verification.md`，总体计划见 `docs/plan.md`。
 
+## 2026-10-21 — 发布 CI：release 自动构建并上传 Windows 包（D17）
+
+- 新增 `windows-release.yml`：发布 release 时自动用 MSYS2
+  MINGW64 构建（Release + strip），按 `docs/build-windows.md`
+  §4 配方打包（windeployqt + DLL 导入表闭包 + gdb 随包），产
+  出 `seer-<版本>-win64.zip` 挂回该 release；支持
+  workflow_dispatch 指定 tag 演练（无 release 时自动建 draft）。
+- win32 包经核实不可行（MSYS2 无 i686 Qt6）且非必要（实测
+  64 位 gdb 可调 32 位程序，见 D17）；不采用 Qt 静态链接
+  （D17 分析）。
+- 废弃删除上游遗留的手动打包 workflow（snap/flatpak/debian/
+  macos 等 11 个），保留 `build-latest.yml` 作 Linux CI 守卫。
+
 ## 2026-10-21 — 仓库更名 seer-windows（发布准备，D16）
 
 - GitHub 仓库更名为 `skywind3000/seer-windows`（fork 关系、tag

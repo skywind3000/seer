@@ -116,8 +116,13 @@ issue #94 是本项目最重要的背景资料，动手移植前请先读完它�
   OpenGL。
 - `src/build_seerutl/` 是 `SeerUtl` 的独立小测试工程，它的 cmake 参数
   是单个 `.`（CMakeLists.txt 就在该目录内），不是 `..`。
-- `.github/workflows/windows-latest.yml` 名字有误导性：它实际是在
-  WSL Ubuntu-22.04 里构建 Linux 版，并不是 Windows 原生构建。
+- CI：`build-latest.yml` 在 push/PR 到 `main` 时构建 Linux 版
+  （「Linux 不回归」的自动守卫）；`windows-release.yml` 在发布
+  release 时自动构建 Windows 包（windeployqt + DLL 闭包 + gdb
+  随包，配方见 `docs/build-windows.md` §4）并上传到该 release，
+  也支持 workflow_dispatch 指定 tag 演练（见 D17）。上游遗留的
+  其余打包 workflow（snap/flatpak/debian/macos 等，均手动触发）
+  已废弃删除。
 
 ### WSL2 环境现状（2026-10-20 实测，Qt6 依赖已解决）
 

@@ -434,3 +434,56 @@
   Description/Topics 与 Release 表达——README 是上游文档保持
   原样（AGENTS.md 硬性约束 3），不在其中添加 fork 说明。
 - 依据：主人 2026-10-21 决策（发布准备；四个候选名的取舍）。
+
+## D17 — 发布 CI：release 触发自动构建并上传 Windows 包（仅 win64）
+
+- 日期：2026-10-21
+- 状态：已采纳（主人决策；发布准备的组成部分）
+- 背景：发布需要可直接下载的 Windows 包。主人设想「发 release
+  自动编译 win32/win64 两个 zip 挂回 release，编译用 -static 免
+  MinGW 动态库」。立项核实后有两处修正，见下。
+- 核实（2026-10-21）：
+  1. **win32 包不可行**：MSYS2 mingw32 仓库无 i686 Qt6
+     （qt6-base/charts/svg 的 `-Si` 均查无此包；同一查询法对
+     x86_64 正常返回，mingw32 仓库里 gdb/cmake/ninja 都在——
+     仓库活着但 Qt6-i686 已被砍；setup-msys2 的 README 亦将
+     MINGW32 标为 deprecated）。要 32 位 GUI 只能自源码构建
+     i686 Qt6，性价比为负；
+  2. **64 位 gdb 可调试 32 位程序**（biarch 实测：gdb 18.1
+     x86_64 调 pei-i386 程序，断 main 命中、寄存器以 eip/eax
+     呈现、运行至正常退出，佐证 `.tmp/biarch/`）——win64 包配
+     64 位 gdb 已覆盖 32 位调试目标；win32 包的剩余唯一价值
+     （在 32 位 Windows 上跑 GUI）面向的是已绝迹的平台
+     （32 位 Win10 已 EOL，Win11 无 32 位）。
+- 决策：新增 `.github/workflows/windows-release.yml`，仅产
+  `seer-<tag去v>-win64.zip`：
+  1. 触发 `release: published`（正式发布）+ `workflow_dispatch`
+     （带 tag 输入；对应 release 不存在时自动建 draft，便于
+     不发布的演练）；
+  2. windows-latest + `msys2/setup-msys2@v2`（MINGW64，pacman
+     清单照 `docs/build-windows.md` §1），Release 构建 + strip；
+  3. 打包完全复刻 `docs/build-windows.md` §4 实测配方：
+     windeployqt + **导入表闭包迭代到不动点**（objdump 逐轮
+     补拷，统一覆盖 MinGW 运行时、Qt 第三方依赖、gdb 依赖；
+     不在工具链 bin 里的视为系统 DLL 跳过）+ gdb 随包（D12）；
+  4. `gh release upload --clobber` 挂回触发它的 release
+     （`permissions: contents: write` + `github.token`，全程零
+     第三方 action；zip 另存 workflow artifact 便于排障）。
+- 有意不做：
+  - **Qt 静态链接（-static）**：MSYS2 的 Qt 是动态构建，其 DLL
+    自身依赖 libstdc++/libgcc/winpthread——exe 侧消掉这三个
+    DLL 也得为 Qt DLL 保留它们；且包内大头是 gdb 的 DLL 族
+    （D12，约 60MB），exe 单文件化对总体积与依赖结构无实际
+    改善；真要单文件需自建静态 Qt（Charts/Svg/PrintSupport
+    全要静态变体），放弃。闭包拷贝对 exe/Qt DLL/gdb 一视同仁，
+    是最稳路线；
+  - **不切 UCRT64**：setup-msys2 建议新项目用 UCRT64，但本
+    fork 全部验证记录基于 MINGW64（D7），CI 与验证环境保持
+    同一工具链族。
+- 影响：`.github/workflows/` 除 `build-latest.yml`（Linux CI 守
+  卫，push/PR main 触发——保留）外全部删除（均为手动 dispatch，
+  零行为变化）；AGENTS.md 的 CI 说明改写。首次发布前建议先以
+  workflow_dispatch 演练一次。
+- 依据：主人 2026-10-21 需求；MSYS2 仓库核实（本机 pacman 库）
+  与 biarch 实测（`.tmp/biarch/`）；`docs/build-windows.md` §4；
+  setup-msys2@v2 README。
