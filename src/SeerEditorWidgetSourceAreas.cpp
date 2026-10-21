@@ -53,7 +53,7 @@ SeerEditorWidgetSourceArea::SeerEditorWidgetSourceArea(QWidget* parent) : SeerPl
     _selectedExpressionId       = Seer::createID();
     _selectedBreakpointId       = Seer::createID();
 
-    QFont font("monospace");
+    QFont font(Seer::resolveMonospaceFamily("monospace"));
     font.setStyleHint(QFont::Monospace);
 
     setEditorFont(font);

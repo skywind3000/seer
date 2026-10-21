@@ -10,6 +10,7 @@
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QApplication>
 #include <QtGui/QColor>
+#include <QtGui/QFontDatabase>
 #include <QtGui/QIcon>
 #include <QtGui/QPainter>
 #include <QtGui/QPixmap>
@@ -157,6 +158,32 @@ namespace Seer {
         return normalizeSourcePath(path).toLower();
 #else
         return path;
+#endif
+    }
+
+    QString resolveMonospaceFamily (const QString& requestedFamily) {
+
+        // Seer asks for the generic 'monospace' family (or an aliased
+        // spelling of it) everywhere, which fontconfig resolves on
+        // Linux. On Windows that family does not exist, and the font
+        // Qt substitutes for it can be a surprising pick (BIZ UDGothic
+        // on a clean system). Walk a preference list of common Windows
+        // fixed-pitch fonts instead, so an unset user font lands on
+        // something sane. Other platforms are unchanged.
+#if defined(Q_OS_WIN)
+        static const QStringList preferred = { "Cascadia Code", "Cascadia Mono", "Consolas", "Courier New" };
+
+        static const QStringList installed = QFontDatabase::families();
+
+        for (const QString& family : preferred) {
+            if (installed.contains(family)) {
+                return family;
+            }
+        }
+
+        return QFontDatabase::systemFont(QFontDatabase::FixedFont).family();
+#else
+        return requestedFamily;
 #endif
     }
 

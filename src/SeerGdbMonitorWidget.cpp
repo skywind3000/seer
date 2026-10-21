@@ -45,7 +45,7 @@ SeerGdbMonitorWidget::SeerGdbMonitorWidget (QWidget* parent) : QWidget(parent) {
 
     // Default font.
     QFont font;
-    font.setFamily("monospace");
+    font.setFamily(Seer::resolveMonospaceFamily("monospace"));
     font.setStyleHint(QFont::Monospace);
     font.setFixedPitch(true);
 

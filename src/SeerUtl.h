@@ -29,6 +29,7 @@ namespace Seer {
     QStringList                 filterEscapes               (const QStringList& strings);
     QString                     normalizeSourcePath         (const QString& path);
     QString                     normalizeFileKey            (const QString& path);
+    QString                     resolveMonospaceFamily      (const QString& requestedFamily);
     QString                     expandTabs                  (const QString& str, int tabwidth, bool morph);
     QString                     expandEnv                   (const QString& str, bool* ok = nullptr);
     QStringList                 parse                       (const QString& str, const QString& search, QChar startBracket, QChar endBracket, bool includeSearch);

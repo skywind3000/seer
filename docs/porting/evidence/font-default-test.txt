@@ -1,0 +1,42 @@
+D14 验证：Windows 默认等宽字体解析（fonttest，编译真实 src/SeerUtl.cpp）
+====================================================================
+
+fonttest 程序（.tmp/fonttest/main.cpp）链接仓库真实 SeerUtl.cpp，逐项
+打印：改动前泛型请求的实际解析结果（before）、四个候选字体的安装
+情况、改动后 Seer::resolveMonospaceFamily 的解析结果（after）。
+
+Windows 10（本机，MinGW64 Qt 6.11.2，g++ 16.2.0）：
+--------------------------------------------------------------------
+before: QFont("monospace") -> "Courier New"
+installed: "Cascadia Code" true
+installed: "Cascadia Mono" true
+installed: "Consolas" true
+installed: "Courier New" true
+after: resolveMonospaceFamily("monospace") -> "Cascadia Code"
+after: QFontInfo of resolved font -> "Cascadia Code"
+after: resolveMonospaceFamily("monospace [Consolas]") -> "Cascadia Code"
+--------------------------------------------------------------------
+
+要点：改动前 Qt 对泛型请求的替换是机器相关的任意值（主人机器上
+落 BIZ UDGothic，本机落 Courier New）——这正是缺陷所在；改动后
+按偏好列表命中首个已安装项，QFontInfo 确认精确命中。两种请求
+拼写（"monospace" 与 "monospace [Consolas]"）解析一致。
+
+WSL2 Ubuntu-24.04（Qt 6.4.2，g++ 13.3.0，offscreen 平台）：
+--------------------------------------------------------------------
+before: QFont("monospace") -> "DejaVu Sans Mono"
+installed: "Cascadia Code" false
+installed: "Cascadia Mono" false
+installed: "Consolas" false
+installed: "Courier New" false
+after: resolveMonospaceFamily("monospace") -> "monospace"
+after: QFontInfo of resolved font -> "DejaVu Sans Mono"
+after: resolveMonospaceFamily("monospace [Consolas]") -> "monospace [Consolas]"
+--------------------------------------------------------------------
+
+要点：非 Windows 平台原样返回请求字符串（passthrough），请求
+与解析结果与改动前逐字一致——Linux 行为零变化。
+
+双平台构建（含 12 处调用点包裹）：
+Windows [62/62] 链接成功 0 error；WSL2 [100%] Built target seergdb
+0 error（均为增量构建，2026-10-21）。

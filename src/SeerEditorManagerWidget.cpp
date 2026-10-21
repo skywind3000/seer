@@ -30,7 +30,7 @@
 SeerEditorManagerWidget::SeerEditorManagerWidget (QWidget* parent) : QWidget(parent) {
 
     // Initialize private data
-    _editorFont                     = QFont("monospace", 10);                // Default font.
+    _editorFont                     = QFont(Seer::resolveMonospaceFamily("monospace"), 10);  // Default font.
     _editorHighlighterSettings      = SeerHighlighterSettings::populate(""); // Default syntax highlighting.
     _editorHighlighterEnabled       = true;
     _editorMinimapEnabled           = false;

@@ -791,6 +791,7 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
 | 2026-10-21 | D11：MI 线缆编码与转义还原——写 toLocal8Bit（Win）/读 fromLocal8Bit、`fullname` 的 `\NNN` 八进制按 host-charset 还原（全平台） | Phase 6 中文路径边界产出，全文见 `docs/porting/decisions.md` | Phase 6 |
 | 2026-10-21 | D12：gdb 随包分发（同目录并置 gdb.exe + MinGW 依赖，--gdb-program 可覆盖） | Phase 7 打包实测产出，全文见 `docs/porting/decisions.md` | Phase 7 |
 | 2026-10-21 | D13：维护期分支重组——`main` 转 fork 主干（GitHub 默认分支），`upstream-main` 镜像上游，`develop` 删除；新增合并红线清单 `docs/porting/invariants.md` | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
+| 2026-10-21 | D14：Windows 默认等宽字体按偏好列表解析（Cascadia Code → Mono → Consolas → Courier New），用户已设字体不受影响，Linux 零变化 | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 
 ## 风险登记
 

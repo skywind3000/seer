@@ -4,6 +4,7 @@
 
 #include "SeerEditorConfigPage.h"
 #include "QColorButton.h"
+#include "SeerUtl.h"
 #include <QtGui/QFontDatabase>
 #include <QtWidgets/QWidget>
 #include <QtWidgets/QSpinBox>
@@ -209,7 +210,7 @@ bool SeerEditorConfigPage::autoSourceReload () const {
 
 void SeerEditorConfigPage::reset () {
 
-    setEditorFont(QFont("monospace", 10));
+    setEditorFont(QFont(Seer::resolveMonospaceFamily("monospace"), 10));
     setEditorTabSize(4);
     setHighlighterSettings(SeerHighlighterSettings::populate(""));
     setHighlighterEnabled(true);
