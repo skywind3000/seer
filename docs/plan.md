@@ -797,6 +797,7 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
 | 2026-10-21 | D17：发布 CI——release 触发自动构建并上传 `seer-<版本>-win64.zip`（闭包打包 + gdb 随包）；win32 经核实不可行（MSYS2 无 i686 Qt6，且实测 64 位 gdb 可调 32 位程序） | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 | 2026-10-21 | D18：发布版本号规则 `v{上游版本}-win{N}`——fork 发布 +1、基线升级重置；tag 只在真发布时打、打在发布提交上，细则见 maintenance.md §6 | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 | 2026-10-21 | D19：废除 push 级 CI——删除 build-latest.yml，自动构建只在 release 时发生（仅存 windows-release.yml）；Linux 守卫回归本地 WSL2 | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
+| 2026-10-21 | D20：README 头部加 fork 说明块（双语）——定位/状态/下载/console 差异/构建/文档入口；「上游文档保持原样」对 README 开此唯一例外 | 主人决策，全文见 `docs/porting/decisions.md` | 维护期 |
 
 ## 风险登记
 

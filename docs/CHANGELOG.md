@@ -1,8 +1,16 @@
 # Seer Windows fork 变更记录
 
 本文件是 fork 自身的变更记录（上游 `CHANGELOG.md` 保持原样）。
-决策详情见 `docs/porting/decisions.md`（D1-D13），验证矩阵见
+决策详情见 `docs/porting/decisions.md`（D1-D20），验证矩阵见
 `docs/porting/verification.md`，总体计划见 `docs/plan.md`。
+
+## 2026-10-21 — README 头部加 fork 说明块（D20）
+
+- `README.md` 头部新增双语（英文 + 中文）fork 说明块：fork 定位
+  与上游关系（issue #94）、维护状态、releases 下载（自包含 zip、
+  版本号规则）、Windows 下 console 差异、双平台构建入口、fork
+  文档入口；块尾标明其后为上游原文。上游文档「保持原样」约束对
+  README 头部开此唯一例外（AGENTS.md §3 已同步）。
 
 ## 2026-10-21 — 废除 push 级 CI（D19）
 

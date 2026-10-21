@@ -1,3 +1,30 @@
+Seer on Windows — about this fork
+=================================
+
+> [!IMPORTANT]
+> This is **skywind3000's fork** of [epasveer/seer](https://github.com/epasveer/seer) with a native Windows build.
+> Upstream Seer is Linux-only, and its author has no plans to support Windows ([issue #94](https://github.com/epasveer/seer/issues/94), tagged `wontfix`) — so this fork maintains the Windows port on its own.
+
+* **Status** — The Windows port is complete; the fork is in long-term maintenance (independent fixes + a merge of every upstream release). The porting log and decision records live under [`docs/`](docs/).
+* **Download** — Get `seer-<version>-win64.zip` from the [releases page](https://github.com/skywind3000/seer-windows/releases). The zip is self-contained (Seer + Qt/runtime DLLs + a matching `gdb.exe`): unpack it anywhere and start `seergdb.exe`. Release tags follow `v{upstream-version}-win{N}` (e.g. `v2.8.1-win1`).
+* **What's different on Windows** — A console-mode program you debug runs in its own console window instead of the terminal embedded in the main view (upstream drives the program through a Unix PTY, which Windows doesn't have; GUI programs get no extra window). Day-to-day use otherwise matches upstream.
+* **Building on Windows** — MinGW-w64 + Qt6, see [`docs/build-windows.md`](docs/build-windows.md).
+* **Building on Linux** — unchanged; follow the upstream instructions below.
+
+中文说明
+--------
+
+本仓库是 [epasveer/seer](https://github.com/epasveer/seer)（Linux 上的 gdb 图形前端）的 fork，由 [skywind3000](https://github.com/skywind3000) 自行完成 Windows 原生移植并长期维护：上游不支持 Windows 也无意支持（[issue #94](https://github.com/epasveer/seer/issues/94)），本 fork 独立修缺陷，并跟随上游 release 定期合并。
+
+* **状态**：Windows 移植已完成，处于长期维护期；移植计划、决策与维护流程见 [`docs/`](docs/)。
+* **下载**：[releases 页面](https://github.com/skywind3000/seer-windows/releases) 的 `seer-<版本>-win64.zip` 自包含（Seer、Qt/运行时 DLL、配套 gdb 都在包内），解压到任意目录运行 `seergdb.exe` 即可。版本号形如 `v2.8.1-win1`（`v{上游版本}-win{N}`）。
+* **Windows 下的差异**：被调试的控制台程序在自己的控制台窗口里运行，而不是主视图内嵌的终端（上游用 Unix PTY 驱动被调试程序，Windows 无对应机制；GUI 程序不额外弹窗）。其余使用体验与上游一致。
+* **源码构建**：Windows 用 MinGW-w64 + Qt6，见 [`docs/build-windows.md`](docs/build-windows.md)；Linux 构建不变，按下面上游说明进行。
+
+---
+
+*The sections below are upstream's original README, kept unmodified.*
+
 Introduction
 ============
 

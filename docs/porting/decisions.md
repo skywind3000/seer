@@ -525,3 +525,27 @@
   本决策为准。
 - 依据：主人 2026-10-21 指示（「push 到 main 不应该触发，创建
   release 后才触发」）。
+
+## D20 — README 头部加 fork 说明块（「上游文档保持原样」的唯一例外）
+
+- 日期：2026-10-21
+- 状态：已采纳（主人决策；修订「上游文档保持原样」约束中 README
+  的部分）
+- 背景：仓库已更名 seer-windows（D16）并具备发布能力（D17-D19），
+  但 GitHub 首页渲染的仍是上游原版 README——访客无从得知这是带
+  Windows 原生移植的 fork、Windows 包去哪里下载。项目进入长期
+  维护期（第二阶段），主人要求在 README 头部加上本 fork 的说明。
+- 决策：在 `README.md` 头部插入 fork 说明块（英文 + 中文双语），
+  内容范围限定：fork 定位与上游关系（issue #94）、维护状态、
+  releases 下载（自包含 zip、`v{上游版本}-win{N}` 版本号）、
+  Windows 下 console 行为差异（D1/D3）、双平台构建入口、fork
+  文档入口（docs/）。块尾标明其后为上游原文；上游其余文档
+  （STYLEGUIDE / CHANGELOG / CONTRIBUTING / notes）约束不变。
+- 代价：`README.md` 从此带一块固定 diff，上游 merge 若动到文件头
+  会冲突——按 maintenance.md §2 既定原则处理（保上游结构，把
+  fork 块重新嵌入）；说明块内容只在 fork 状态发生大变化时更新
+  （如发布形态调整），不做日常性维护。
+- 影响：AGENTS.md 硬性约束 3 已同步改写（README 例外）；fork 的
+  docs/CHANGELOG.md 记一条。
+- 依据：主人 2026-10-21 指示（「现在软件进入到了第二阶段，长期
+  维护，帮我修改项目 README，头部加上本项目的说明」）。

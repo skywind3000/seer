@@ -60,7 +60,10 @@ issue #94 是本项目最重要的背景资料，动手移植前请先读完它�
 
 注意区分：`notes/` 是上游作者的开发笔记（`notes/README.*`），
 `README.md` / `STYLEGUIDE.md` / `CHANGELOG.md` / `CONTRIBUTING.md` 是
-上游文档，都保持原样，不要往里加自己的东西。
+上游文档，都保持原样，不要往里加自己的东西。唯一例外（D20）：
+`README.md` 头部有一个主人授意的 fork 说明块（双语，内容范围与
+更新纪律见 decisions.md D20），只允许维护该块，其后的上游原文
+依旧不动。
 
 ### 4. 动手前先加载 `AGENTS.local.md`
 
