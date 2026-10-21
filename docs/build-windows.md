@@ -80,25 +80,40 @@ seergdb.exe 依赖 MinGW64 的 Qt/运行时 DLL，两种方式任选：
 ## 4. 打包
 
 windeployqt 只收 Qt 自己的 DLL；**MSYS2 工具链下还有两块要手工补**
-（2026-10-21 实测，缺任何一块都会以 0xC0000135 静默失败）：
+（缺任何一块都加载失败：bash 里是静默的 exit 127/0xC0000135，从
+资源管理器直接启动则弹「找不到 XXX.dll」对话框）：
 
 1. MinGW 运行时（`libgcc_s_seh-1.dll`、`libstdc++-6.dll`、
    `libwinpthread-1.dll`）；
-2. Qt DLL 的第三方依赖（icu78、freetype、harfbuzz、pcre2-16、
-   png16、brotli、b2、double-conversion、md4c、glib 家族等——
-   从 `<MINGW64>\bin` 拷贝）。
+2. Qt DLL 的第三方依赖（icu、freetype、harfbuzz、pcre2、png、
+   zlib、brotli、glib 家族等，从 `<MINGW64>\bin` 拷贝）。
 
 完整流程（PowerShell/MSYS2 shell，`<D>` 为输出目录）：
 
     mkdir <D> && cp ..\.tmp\build-win64\seergdb.exe <D>\
     <MINGW64>\bin\windeployqt.exe <D>\seergdb.exe
-    # MinGW 运行时 + Qt 第三方依赖（可用导入表闭包迭代补齐，
-    # 参考脚本 .tmp/phase7/；两轮迭代收敛）：
-    cp <MINGW64>\bin\{libgcc_s_seh-1,libstdc++-6,libwinpthread-1}.dll <D>\
-    cp <MINGW64>\bin\{libicuin78,libicuuc78,libicudt78,libfreetype-6,
-        libharfbuzz-0,libpcre2-16-0,libpng16-16,libbrotlidec,
+
+**第三方依赖以「导入表闭包迭代到不动点」为准**。每轮：对 `<D>` 里
+全部 exe/dll 用 `objdump -p` 列出导入的 DLL 名，减去 `<D>` 已有的，
+再减去 System32 里有的（`api-ms-*` / `ext-ms-*` / `iphlpapi.dll` /
+`winspool.drv` 是系统组件，直接排除），把差集从 `<MINGW64>\bin`
+拷入，**重扫**，重复直到差集为空。注意：新拷入的 DLL 自带依赖，
+只补一轮会漏第三层（实测漏过 `libglib → libintl → libiconv-2`）。
+
+2026-10-21 复验机实测收敛全集（Qt 6.11.2 / MSYS2 mingw64）：
+
+    cp <MINGW64>\bin\{libgcc_s_seh-1,libstdc++-6,libwinpthread-1,
+        libicuin78,libicuuc78,libicudt78,libfreetype-6,libharfbuzz-0,
+        libgraphite2,libpcre2-16-0,libpng16-16,zlib1,libbrotlidec,
         libbrotlicommon,libbrotlienc,libb2-1,libdouble-conversion,
-        libmd4c,libglib-2.0-0,libgmodule-2.0-0,libpcre2-8-0,libffi-8}.dll <D>\
+        libmd4c,libjpeg-8,libbz2-1,libzstd,libiconv-2,libintl-8,
+        libglib-2.0-0,libgmodule-2.0-0,libgobject-2.0-0,libgio-2.0-0,
+        libpcre2-8-0,libffi-8}.dll <D>\
+
+（初版静态清单缺其中 9 个：`libzstd` / `zlib1` / `libbz2-1` /
+`libjpeg-8` / `libgraphite2` / `libgobject-2.0-0` / `libgio-2.0-0` /
+`libintl-8` / `libiconv-2`——在另一台机器仅按本文档从零复现打包时
+以缺 DLL 弹窗暴露，2026-10-21 复验时补齐并改为上述迭代流程。）
 
 分发体积参考：Debug 构建 ≈ 230MB（exe 131MB，未裁剪）；
 Release 构建 + gdb 随包 ≈ 数十 MB 量级（见

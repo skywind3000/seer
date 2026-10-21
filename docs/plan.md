@@ -750,6 +750,21 @@ WSL2 `[100%]` 双构建 0 error；无头冒烟无崩溃。
     移交路径/遗留风险/打包快照）。
   - 出口条件：从零构建 ✔（仅按文档，未查隐性知识）；
     主人验收 → **待复核**。
+- 2026-10-21 追记（换回第一台机器复验）：仓库同步 `b293bc5` 后对
+  phase 4–7 成果做整机复验。通过项：仅按 build-windows.md 从零全量
+  构建 `[128/128]` 0 error；hellopathnorm 双平台 13/13；WSL2 回归
+  `[100%]`；x64 gdb 18.1 与 x86 gdb 17.1 真实会话冒烟（断 main →
+  F8 继续 → 退出 → Alt+F4 优雅关窗 code 0，无孤儿 gdb；x86 首跑
+  复现已知的 gdb32 偶发卡停，重试即过——两机各一次，维持观察项）；
+  干净 PATH（仅 System32）打包会话实证：seergdb 启动、spawn gdb、
+  inferior 停在 main（截图留证）。**发现并修复 build-windows.md §4
+  缺口**：初版手工 DLL 清单漏 9 个（zstd/zlib1/bz2/jpeg/graphite2/
+  gobject/gio/intl/iconv），仅按文档从零复现即加载失败——已改为
+  「导入表闭包迭代到不动点」权威流程并附收敛全集（含「新拷 DLL
+  必须重扫」教训）。本机环境补齐：HKCU Console VT 注册表
+  （AGENTS.local.md §8）、moc/uic 位置更正（在 `share/qt6/bin`）、
+  ConstrainedLanguage PowerShell 说明（§9）。佐证：`.tmp/verify-m1/`。
+  Phase 7 维持「待复核」。
 
 ---
 
