@@ -19,9 +19,20 @@ issue #94 是本项目最重要的背景资料，动手移植前请先读完它�
 
 ### 1. 分支策略
 
-- `main`：fork 主干，GitHub 默认分支。日常开发落点：小修直接提交，
-  非平凡改动走短命 `fix/*` 分支合入后删除（D13）。push 到 `main`
-  会触发 `build-latest.yml` 的 CI 构建。
+- `main`：fork 主干，GitHub 默认分支。**短期修改**（小 bug、单点
+  改动）直接在此提交，验证通过再 push（D13/D15）；push 会触发
+  `build-latest.yml` 的 CI 构建。不方便直接提交的可用短命 `fix/*`
+  分支，合入后删除。
+- `develop`：中长期功能的集成分支（D15），从 `main` 分离、长期
+  存在：
+  - 动手前先同步——`git switch develop && git merge main`（无
+    分叉时为纯快进）；
+  - 开发调试完成后归并回 `main`——`git switch main &&
+    git merge develop`（双平台验证通过后再 push）；
+  - **不从 `upstream` 取更新**——上游同步只落 `main`（见下），
+    `develop` 只从 `main` 取，保证上游集成点唯一；
+  - push `develop` 不触发 CI（触发条件是 `main`/PR），归并回
+    `main` 的 push 会触发，作为落地前的最后一道自动构建。
 - `upstream-main`：上游 `main` 的只读镜像（本地与 origin 同名分支），
   只在同步上游时快进（`git fetch upstream main:upstream-main`），
   平时不提交任何改动。

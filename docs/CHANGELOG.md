@@ -4,6 +4,13 @@
 决策详情见 `docs/porting/decisions.md`（D1-D13），验证矩阵见
 `docs/porting/verification.md`，总体计划见 `docs/plan.md`。
 
+## 2026-10-21 — 恢复 develop 集成分支（D15）
+
+- 建立长期 `develop`（自 `main` 顶端分离并推送 origin）：中长期
+  功能先在其上开发调试（动手前 `git merge main` 同步，完成后
+  归并回 `main`）；短期修改仍直接改 `main`；上游同步只落
+  `main`，`develop` 不从 upstream 取更新。
+
 ## 2026-10-21 — Windows 默认等宽字体按偏好列表解析（D14）
 
 - 未设置字体的默认分支在 Windows 下按 **Cascadia Code →

@@ -10,12 +10,14 @@
 - 节奏：跟随上游 release（上游大约每季度一个版本）。每个上游
   release 发布后，做一次 merge；小改动攒着随 release 一起合，
   不逐 commit 追。
-- 分支（D13）：`main` 是 fork 主干（GitHub 默认分支）；
-  `upstream-main` 是上游 `main` 的只读镜像，只在本流程快进。
-  上游 remote 名为 `upstream`（指向
-  `https://github.com/epasveer/seer`，推送已禁用）。**不要用
-  GitHub 的 "Sync fork" 按钮**——它绕过冲突处理与回归验证，直接
-  把上游代码怼进 `main`。
+- 分支（D13/D15）：`main` 是 fork 主干（GitHub 默认分支）；
+  `upstream-main` 是上游 `main` 的只读镜像，只在本流程快进；
+  `develop`（中长期集成分支）不参与本流程——上游 merge 只落
+  `main`，`develop` 下次使用前先 `git merge main` 同步（分支
+  策略见 `AGENTS.md` 硬性约束 1）。上游 remote 名为 `upstream`
+  （指向 `https://github.com/epasveer/seer`，推送已禁用）。
+  **不要用 GitHub 的 "Sync fork" 按钮**——它绕过冲突处理与回归
+  验证，直接把上游代码怼进 `main`。
 - 流程：
   1. `git fetch upstream`；
      `git log --oneline upstream-main..upstream/main` 预览上游
